@@ -23,111 +23,57 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing resume or job description' });
   }
 
-  // Build context from local results if available
-  const localContext = localResults ? `
-## Local Analysis Results (for reference):
-- Overall Score: ${localResults.overallScore}%
-- Matched Keywords: ${localResults.keywordAnalysis?.matchedKeywords?.join(', ') || 'N/A'}
-- Missing Keywords: ${localResults.keywordAnalysis?.missingKeywords?.join(', ') || 'N/A'}
-` : '';
-
-  const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description and provide detailed, actionable feedback.
+  const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description.
 
 ## Resume:
 ${resumeText}
 
 ## Job Description:
 ${jdText}
-${localContext}
+
+## Local Analysis Results:
+- Match Score: ${localResults?.overallScore || 'N/A'}%
+- Matched Keywords: ${localResults?.matchedKeywords?.join(', ') || 'N/A'}
+- Missing Keywords: ${localResults?.missingKeywords?.join(', ') || 'N/A'}
 
 ## Your Task:
-Enhance the analysis with your semantic understanding. Focus on:
-1. Skills that are semantically related but use different terminology
-2. Experience that matches job requirements even if worded differently
-3. Specific bullet point rewrites that incorporate missing keywords
-4. Actionable recommendations based on gaps
+Provide a comprehensive analysis with:
+1. Executive Summary - A detailed 4-6 sentence strategic assessment
+2. Section-by-section modification suggestions (10-15 specific changes)
 
-## Provide your analysis in this exact JSON format (no markdown, just JSON):
+## Return ONLY this JSON format (no markdown, no backticks):
 {
-  "overallScore": <number 0-100, be fair but accurate>,
-  "summary": "<2-3 sentence assessment highlighting strengths and key gaps>",
-  "sections": {
-    "experience": {
-      "score": <number 0-100>,
-      "feedback": "<specific feedback about experience alignment>",
-      "strengths": ["<strength 1>", "<strength 2>"],
-      "improvements": ["<specific improvement 1>", "<specific improvement 2>"]
+  "executiveSummary": "<Write a 4-6 sentence strategic assessment. Cover: overall alignment, key strengths, major gaps, specific concerns (like missing qualifications), and strategic recommendations for repositioning. Be specific and reference actual content from both documents. Example tone: 'Your resume demonstrates strong X with relevant experience in Y and Z. The [Company] experience aligns well with [JD requirement]. However, the resume needs strategic repositioning to emphasize [gap areas]. Major gaps include: [specific missing items]. The resume reads more [current focus]-heavy than [desired focus]. Restructure to lead with [recommended focus].'>",
+  
+  "modifications": [
+    {
+      "section": "Professional Summary",
+      "issue": "<One sentence describing what's wrong or missing>",
+      "original": "<Quote the actual text from resume if applicable, or null>",
+      "suggestion": "<The improved/rewritten text>",
+      "reason": "<Why this change helps - reference JD keywords or requirements>"
     },
-    "skills": {
-      "score": <number 0-100>,
-      "matched": ["<skill1>", "<skill2>", "<include semantically related matches>"],
-      "missing": ["<critical missing skill 1>", "<critical missing skill 2>"],
-      "feedback": "<assessment of skill alignment>"
-    },
-    "education": {
-      "score": <number 0-100>,
-      "feedback": "<education assessment>"
-    },
-    "formatting": {
-      "score": <number 0-100>,
-      "issues": ["<issue if any>"],
-      "passed": ["<what's good>"]
+    {
+      "section": "Experience - [Company Name]",
+      "issue": "<Issue description>",
+      "original": "<Original bullet point from resume>",
+      "suggestion": "<Improved version with JD keywords>",
+      "reason": "<Explanation referencing JD language>"
     }
-  },
-  "keywordAnalysis": {
-    "matchedKeywords": ["<include semantically matched keywords>"],
-    "missingKeywords": ["<truly missing critical keywords>"],
-    "keywordDensity": "<assessment>"
-  },
-  "recommendations": [
-    {
-      "priority": "high",
-      "title": "<actionable title>",
-      "description": "<specific advice with context from the JD>",
-      "example": "<concrete example they can use>"
-    },
-    {
-      "priority": "medium",
-      "title": "<actionable title>",
-      "description": "<specific advice>",
-      "example": "<concrete example>"
-    }
-  ],
-  "bulletPointRewrites": [
-    {
-      "original": "<actual bullet point from their resume that could be improved>",
-      "improved": "<rewritten version with keywords from the JD and quantified impact>",
-      "explanation": "<brief explanation of why this is better>"
-    },
-    {
-      "original": "<another bullet point>",
-      "improved": "<rewritten version>",
-      "explanation": "<explanation>"
-    },
-    {
-      "original": "<third bullet point if applicable>",
-      "improved": "<rewritten version>",
-      "explanation": "<explanation>"
-    }
-  ],
-  "atsCompatibility": {
-    "score": <number 0-100>,
-    "issues": ["<ATS issue if any>"],
-    "suggestions": ["<ATS optimization tip>"]
-  },
-  "interviewTips": [
-    "<specific interview tip based on this JD>",
-    "<tip about skills they should be ready to discuss>",
-    "<tip about potential questions based on gaps>"
   ]
 }
 
-Important:
-- Be specific and reference actual content from the resume and JD
-- Provide at least 2-3 bullet point rewrites that incorporate JD keywords
-- Make recommendations actionable and concrete
-- Consider semantic matches (e.g., "led team" matches "leadership")
-- Return ONLY the JSON object, no other text`;
+## Guidelines for modifications:
+- Include 10-15 modifications covering different resume sections
+- Sections should be: Professional Summary, Experience - [Company], Skills & Certifications, Education
+- Each modification should incorporate specific keywords from the JD
+- Original field should quote actual resume text when suggesting rewrites
+- Suggestions should be complete, ready-to-use replacements
+- Reasons should reference specific JD requirements or keywords
+- Focus on: missing keywords, weak action verbs, lack of metrics, missing JD terminology
+- Be specific - don't be generic like "add more detail"
+
+Return ONLY the JSON object, nothing else.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -166,6 +112,7 @@ Important:
         return res.status(200).json(parsed);
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
+        console.error('Content:', content);
         return res.status(500).json({ error: 'Failed to parse AI response' });
       }
     }
