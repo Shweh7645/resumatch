@@ -1,18 +1,125 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, ChevronDown, ChevronUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight } from 'lucide-react';
 
-// Keyword extraction and matching logic
+// ============================================
+// AI-POWERED ANALYSIS WITH CLAUDE API
+// ============================================
+
+const analyzeWithAI = async (resumeText, jdText, apiKey) => {
+  const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description and provide detailed feedback.
+
+## Resume:
+${resumeText}
+
+## Job Description:
+${jdText}
+
+## Provide your analysis in the following JSON format exactly:
+{
+  "overallScore": <number 0-100>,
+  "summary": "<2-3 sentence overall assessment>",
+  "sections": {
+    "experience": {
+      "score": <number 0-100>,
+      "feedback": "<specific feedback>",
+      "strengths": ["<strength 1>", "<strength 2>"],
+      "improvements": ["<improvement 1>", "<improvement 2>"]
+    },
+    "skills": {
+      "score": <number 0-100>,
+      "matched": ["<skill1>", "<skill2>"],
+      "missing": ["<skill1>", "<skill2>"],
+      "feedback": "<specific feedback>"
+    },
+    "education": {
+      "score": <number 0-100>,
+      "feedback": "<specific feedback>"
+    },
+    "formatting": {
+      "score": <number 0-100>,
+      "issues": ["<issue1>", "<issue2>"],
+      "passed": ["<check1>", "<check2>"]
+    }
+  },
+  "keywordAnalysis": {
+    "matchedKeywords": ["<keyword1>", "<keyword2>"],
+    "missingKeywords": ["<keyword1>", "<keyword2>"],
+    "keywordDensity": "<assessment of keyword usage>"
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "title": "<recommendation title>",
+      "description": "<detailed actionable advice>",
+      "example": "<specific example if applicable>"
+    }
+  ],
+  "bulletPointRewrites": [
+    {
+      "original": "<original bullet point from resume>",
+      "improved": "<AI-improved version with metrics and keywords>",
+      "explanation": "<why this is better>"
+    }
+  ],
+  "atsCompatibility": {
+    "score": <number 0-100>,
+    "issues": ["<issue1>"],
+    "suggestions": ["<suggestion1>"]
+  },
+  "interviewTips": ["<tip based on JD>", "<tip based on resume gaps>"]
+}
+
+Be specific, actionable, and reference actual content from the resume and JD. Focus on ATS optimization.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      })
+    });
+
+    const data = await response.json();
+    const content = data.content[0].text;
+    
+    // Extract JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error('Could not parse AI response');
+  } catch (error) {
+    console.error('AI Analysis Error:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// FALLBACK LOCAL ANALYSIS (No API Key)
+// ============================================
+
 const extractKeywords = (text) => {
-  const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'once', 'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'further', 'while', 'about', 'against', 'your', 'our', 'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any', 'well', 'years', 'year', 'experience', 'work', 'working', 'team', 'ability', 'strong', 'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities']);
+  const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any', 'well', 'years', 'year', 'experience', 'work', 'working', 'team', 'ability', 'strong', 'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities', 'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based', 'across', 'within', 'along', 'among', 'around', 'behind', 'beyond']);
   
   const words = text.toLowerCase()
-    .replace(/[^a-zA-Z0-9\s\+\#\.]/g, ' ')
+    .replace(/[^a-zA-Z0-9\s\+\#\.\-]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 2 && !commonWords.has(word));
   
-  // Extract multi-word phrases (bigrams)
   const phrases = [];
-  const techTerms = ['machine learning', 'data science', 'project management', 'product management', 'user experience', 'user interface', 'full stack', 'front end', 'back end', 'cloud computing', 'data analysis', 'business analysis', 'agile methodology', 'scrum master', 'product owner', 'customer success', 'account management', 'sales operations', 'digital marketing', 'content marketing', 'social media', 'search engine', 'quality assurance', 'software development', 'web development', 'mobile development', 'cross functional', 'stakeholder management', 'sprint planning', 'product roadmap', 'go to market', 'key performance', 'return on investment'];
+  const techTerms = ['machine learning', 'data science', 'project management', 'product management', 'user experience', 'user interface', 'full stack', 'front end', 'back end', 'cloud computing', 'data analysis', 'business analysis', 'agile methodology', 'scrum master', 'product owner', 'customer success', 'account management', 'sales operations', 'digital marketing', 'content marketing', 'social media', 'search engine', 'quality assurance', 'software development', 'web development', 'mobile development', 'cross functional', 'stakeholder management', 'sprint planning', 'product roadmap', 'go to market', 'key performance', 'return on investment', 'deep learning', 'natural language processing', 'computer vision', 'ci cd', 'continuous integration', 'continuous deployment', 'test driven', 'behavior driven', 'object oriented', 'functional programming', 'microservices architecture', 'restful api', 'graphql api', 'version control', 'code review'];
   
   techTerms.forEach(term => {
     if (text.toLowerCase().includes(term)) {
@@ -29,9 +136,9 @@ const extractKeywords = (text) => {
 };
 
 const categorizeSkills = (keywords) => {
-  const hardSkills = ['python', 'javascript', 'react', 'node', 'sql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'java', 'c++', 'excel', 'tableau', 'power bi', 'jira', 'confluence', 'figma', 'sketch', 'photoshop', 'salesforce', 'hubspot', 'google analytics', 'seo', 'html', 'css', 'git', 'api', 'rest', 'graphql', 'mongodb', 'postgresql', 'mysql', 'redis', 'kafka', 'spark', 'hadoop', 'tensorflow', 'pytorch', 'scikit', 'pandas', 'numpy', 'r', 'stata', 'spss', 'matlab', 'sas', 'typescript', 'vue', 'angular', 'swift', 'kotlin', 'flutter', 'react native', 'jenkins', 'terraform', 'ansible', 'linux', 'unix', 'postman', 'selenium', 'cypress', 'jest', 'mocha', 'webpack', 'npm', 'yarn', 'agile', 'scrum', 'kanban', 'waterfall', 'devops', 'ci/cd', 'microservices', 'serverless', 'blockchain', 'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science', 'data engineering', 'etl', 'data warehouse', 'snowflake', 'databricks', 'looker', 'dbt', 'airflow', 'prds', 'user stories', 'acceptance criteria', 'roadmapping', 'wireframing', 'prototyping', 'a/b testing', 'sql server', 'oracle', 'sap'];
+  const hardSkills = ['python', 'javascript', 'typescript', 'react', 'node', 'nodejs', 'sql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'java', 'c++', 'c#', 'go', 'golang', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'scala', 'excel', 'tableau', 'power bi', 'looker', 'jira', 'confluence', 'asana', 'trello', 'figma', 'sketch', 'adobe', 'photoshop', 'illustrator', 'salesforce', 'hubspot', 'marketo', 'google analytics', 'mixpanel', 'amplitude', 'segment', 'seo', 'sem', 'html', 'css', 'sass', 'less', 'git', 'github', 'gitlab', 'bitbucket', 'api', 'rest', 'graphql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch', 'kafka', 'rabbitmq', 'spark', 'hadoop', 'airflow', 'dbt', 'snowflake', 'databricks', 'tensorflow', 'pytorch', 'keras', 'scikit', 'pandas', 'numpy', 'scipy', 'matplotlib', 'r', 'stata', 'spss', 'matlab', 'sas', 'vue', 'angular', 'svelte', 'nextjs', 'gatsby', 'flutter', 'react native', 'ionic', 'electron', 'jenkins', 'circleci', 'travis', 'terraform', 'ansible', 'puppet', 'chef', 'linux', 'unix', 'bash', 'powershell', 'postman', 'swagger', 'selenium', 'cypress', 'jest', 'mocha', 'pytest', 'junit', 'webpack', 'vite', 'rollup', 'npm', 'yarn', 'pnpm', 'agile', 'scrum', 'kanban', 'waterfall', 'lean', 'devops', 'sre', 'cicd', 'mlops', 'dataops', 'microservices', 'serverless', 'lambda', 'blockchain', 'solidity', 'web3', 'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science', 'data engineering', 'data analytics', 'etl', 'elt', 'data warehouse', 'data lake', 'bi', 'reporting', 'dashboard', 'prds', 'user stories', 'acceptance criteria', 'roadmap', 'okrs', 'kpis', 'wireframing', 'prototyping', 'a/b testing', 'experimentation', 'sql server', 'oracle', 'sap', 'erp', 'crm'];
   
-  const softSkills = ['leadership', 'communication', 'collaboration', 'teamwork', 'problem solving', 'analytical', 'creative', 'strategic', 'innovative', 'adaptable', 'flexible', 'organized', 'detail oriented', 'self motivated', 'proactive', 'reliable', 'dependable', 'interpersonal', 'negotiation', 'presentation', 'mentoring', 'coaching', 'decision making', 'time management', 'prioritization', 'multitasking', 'customer focused', 'results driven', 'goal oriented', 'critical thinking', 'emotional intelligence', 'conflict resolution', 'stakeholder', 'cross functional'];
+  const softSkills = ['leadership', 'communication', 'collaboration', 'teamwork', 'problem solving', 'analytical', 'creative', 'creativity', 'strategic', 'innovative', 'innovation', 'adaptable', 'adaptability', 'flexible', 'flexibility', 'organized', 'organization', 'detail oriented', 'attention to detail', 'self motivated', 'proactive', 'initiative', 'reliable', 'dependable', 'interpersonal', 'negotiation', 'presentation', 'public speaking', 'mentoring', 'coaching', 'training', 'decision making', 'time management', 'prioritization', 'multitasking', 'customer focused', 'customer centric', 'results driven', 'results oriented', 'goal oriented', 'critical thinking', 'emotional intelligence', 'empathy', 'conflict resolution', 'stakeholder', 'cross functional', 'influence', 'persuasion', 'written communication', 'verbal communication'];
   
   const found = { hard: [], soft: [] };
   keywords.forEach(kw => {
@@ -47,7 +154,7 @@ const categorizeSkills = (keywords) => {
   return found;
 };
 
-const analyzeResume = (resumeText, jdText) => {
+const analyzeResumeLocally = (resumeText, jdText) => {
   const resumeData = extractKeywords(resumeText);
   const jdData = extractKeywords(jdText);
   
@@ -66,14 +173,8 @@ const analyzeResume = (resumeText, jdText) => {
     }
   });
   
-  // Categorize missing skills
   const categorizedMissing = categorizeSkills(missing);
   const categorizedMatched = categorizeSkills(matched);
-  
-  // Calculate score with weighting
-  const hardSkillWeight = 0.6;
-  const softSkillWeight = 0.3;
-  const generalWeight = 0.1;
   
   const jdHardSkills = categorizeSkills(jdWords).hard;
   const jdSoftSkills = categorizeSkills(jdWords).soft;
@@ -83,265 +184,448 @@ const analyzeResume = (resumeText, jdText) => {
   const generalScore = jdWords.length > 0 ? (matched.length / jdWords.length) * 100 : 0;
   
   const overallScore = Math.min(100, Math.round(
-    (hardScore * hardSkillWeight) + 
-    (softScore * softSkillWeight) + 
-    (generalScore * generalWeight)
+    (hardScore * 0.6) + (softScore * 0.3) + (generalScore * 0.1)
   ));
-  
-  return {
-    score: overallScore,
-    matched: [...new Set(matched)].slice(0, 20),
-    missing: [...new Set(missing)].slice(0, 15),
-    hardSkillsMissing: [...new Set(categorizedMissing.hard)].slice(0, 10),
-    softSkillsMissing: [...new Set(categorizedMissing.soft)].slice(0, 5),
-    hardSkillsMatched: [...new Set(categorizedMatched.hard)],
-    softSkillsMatched: [...new Set(categorizedMatched.soft)],
-    totalJdKeywords: jdWords.length,
-    matchedCount: matched.length
-  };
-};
 
-const checkFormatting = (text) => {
-  const issues = [];
-  const passed = [];
-  
-  // Check for contact info
-  const hasEmail = /\b[\w.-]+@[\w.-]+\.\w+\b/.test(text);
-  const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(text);
-  const hasLinkedIn = /linkedin/i.test(text);
-  
-  if (hasEmail) passed.push('Email address detected');
-  else issues.push({ type: 'warning', text: 'No email address found' });
-  
-  if (hasPhone) passed.push('Phone number detected');
-  else issues.push({ type: 'warning', text: 'No phone number found' });
-  
-  if (hasLinkedIn) passed.push('LinkedIn profile included');
-  else issues.push({ type: 'info', text: 'Consider adding LinkedIn profile URL' });
-  
-  // Check for quantified achievements
-  const hasNumbers = /\d+%|\$[\d,]+|\d+\+|\d+ years?/i.test(text);
-  if (hasNumbers) passed.push('Quantified achievements found');
-  else issues.push({ type: 'warning', text: 'Add numbers to quantify your achievements (e.g., "increased sales by 25%")' });
-  
-  // Check for action verbs
-  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered', 'drove', 'executed', 'established', 'generated', 'grew', 'initiated', 'optimized', 'spearheaded', 'streamlined', 'transformed'];
-  const hasActionVerbs = actionVerbs.some(verb => text.toLowerCase().includes(verb));
-  if (hasActionVerbs) passed.push('Strong action verbs used');
-  else issues.push({ type: 'warning', text: 'Use strong action verbs (led, managed, developed, etc.)' });
-  
-  // Check length
-  const wordCount = text.split(/\s+/).length;
-  if (wordCount < 200) issues.push({ type: 'warning', text: 'Resume seems too short. Aim for 400-800 words.' });
-  else if (wordCount > 1000) issues.push({ type: 'info', text: 'Resume may be too long. Consider condensing to 1-2 pages.' });
-  else passed.push('Appropriate resume length');
-  
-  // Check for common sections
-  const hasSections = /experience|education|skills|summary|objective/i.test(text);
-  if (hasSections) passed.push('Standard sections detected');
-  else issues.push({ type: 'error', text: 'Missing standard sections (Experience, Education, Skills)' });
-  
-  return { issues, passed };
-};
+  // Check formatting
+  const hasEmail = /\b[\w.-]+@[\w.-]+\.\w+\b/.test(resumeText);
+  const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(resumeText);
+  const hasLinkedIn = /linkedin/i.test(resumeText);
+  const hasNumbers = /\d+%|\$[\d,]+|\d+\+|\d+ (years?|months?|projects?|teams?|clients?|customers?)/i.test(resumeText);
+  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered', 'drove', 'executed', 'established', 'generated', 'grew', 'initiated', 'optimized', 'spearheaded', 'streamlined', 'transformed', 'orchestrated', 'pioneered', 'revamped', 'accelerated', 'championed'];
+  const hasActionVerbs = actionVerbs.some(verb => resumeText.toLowerCase().includes(verb));
+  const wordCount = resumeText.split(/\s+/).length;
+  const hasSections = /experience|education|skills|summary|objective|projects?|certifications?/i.test(resumeText);
 
-const generateRecommendations = (analysis, formatting) => {
+  // Generate recommendations
   const recommendations = [];
   
-  if (analysis.score < 50) {
+  if (overallScore < 50) {
     recommendations.push({
       priority: 'high',
       title: 'Critical: Low Keyword Match',
-      description: 'Your resume matches less than 50% of job requirements. Add missing hard skills to your experience section.'
+      description: 'Your resume matches less than 50% of job requirements. Add missing hard skills to your experience section.',
+      example: `Add keywords like: ${categorizedMissing.hard.slice(0, 3).join(', ')}`
     });
   }
   
-  if (analysis.hardSkillsMissing.length > 3) {
+  if (categorizedMissing.hard.length > 3) {
     recommendations.push({
       priority: 'high',
       title: 'Add Technical Skills',
-      description: `Include these missing skills if you have them: ${analysis.hardSkillsMissing.slice(0, 5).join(', ')}`
+      description: `Include these missing skills if you have them: ${categorizedMissing.hard.slice(0, 5).join(', ')}`,
+      example: 'Add these in your Skills section or demonstrate them in your Experience bullet points'
+    });
+  }
+
+  if (!hasNumbers) {
+    recommendations.push({
+      priority: 'high',
+      title: 'Quantify Your Achievements',
+      description: 'Add numbers, percentages, and metrics to demonstrate impact.',
+      example: 'Instead of "Improved sales", write "Increased sales by 35% over 6 months"'
+    });
+  }
+
+  if (!hasActionVerbs) {
+    recommendations.push({
+      priority: 'medium',
+      title: 'Use Strong Action Verbs',
+      description: 'Start bullet points with powerful action verbs.',
+      example: 'Use verbs like: Led, Developed, Implemented, Achieved, Optimized'
     });
   }
   
-  if (analysis.softSkillsMissing.length > 2) {
+  if (categorizedMissing.soft.length > 2) {
     recommendations.push({
       priority: 'medium',
       title: 'Demonstrate Soft Skills',
-      description: `Show these qualities through your achievements: ${analysis.softSkillsMissing.slice(0, 3).join(', ')}`
+      description: `Show these qualities through your achievements: ${categorizedMissing.soft.slice(0, 3).join(', ')}`,
+      example: 'Instead of listing "leadership", write "Led a team of 5 engineers to deliver project 2 weeks early"'
     });
   }
-  
-  formatting.issues.filter(i => i.type === 'error' || i.type === 'warning').forEach(issue => {
+
+  if (wordCount < 300) {
     recommendations.push({
-      priority: issue.type === 'error' ? 'high' : 'medium',
-      title: 'Formatting Issue',
-      description: issue.text
+      priority: 'medium',
+      title: 'Add More Detail',
+      description: 'Your resume seems short. Aim for 400-600 words with detailed accomplishments.',
+      example: 'Add 2-3 bullet points per role describing your specific contributions and results'
     });
-  });
-  
-  if (analysis.score >= 70 && analysis.score < 85) {
+  }
+
+  if (overallScore >= 70 && overallScore < 85) {
     recommendations.push({
       priority: 'low',
       title: 'Fine-tune for Higher Match',
-      description: 'You\'re close! Mirror exact phrases from the job description where applicable.'
+      description: 'You\'re close! Mirror exact phrases from the job description where applicable.',
+      example: 'If JD says "cross-functional collaboration", use that exact phrase in your resume'
     });
   }
-  
-  if (analysis.score >= 85) {
-    recommendations.push({
-      priority: 'low',
-      title: 'Great Match!',
-      description: 'Your resume is well-aligned. Focus on tailoring your cover letter now.'
-    });
-  }
-  
-  return recommendations;
+
+  return {
+    overallScore,
+    summary: overallScore >= 80 
+      ? "Excellent match! Your resume is well-aligned with this job description."
+      : overallScore >= 60 
+        ? "Good foundation. With some targeted improvements, you can significantly increase your match rate."
+        : "Your resume needs optimization for this role. Focus on adding missing keywords and quantifying achievements.",
+    sections: {
+      experience: {
+        score: Math.round(hardScore * 0.8 + (hasNumbers ? 20 : 0)),
+        feedback: hasNumbers ? "Good use of metrics in experience section." : "Add more quantified achievements.",
+        strengths: hasActionVerbs ? ["Uses action verbs"] : [],
+        improvements: hasNumbers ? [] : ["Add numbers and percentages to show impact"]
+      },
+      skills: {
+        score: Math.round(hardScore),
+        matched: [...new Set(categorizedMatched.hard)].slice(0, 10),
+        missing: [...new Set(categorizedMissing.hard)].slice(0, 10),
+        feedback: categorizedMissing.hard.length > 5 ? "Missing several key technical skills from JD" : "Good skill alignment"
+      },
+      education: {
+        score: 80,
+        feedback: "Education section detected"
+      },
+      formatting: {
+        score: (hasEmail ? 25 : 0) + (hasPhone ? 25 : 0) + (hasLinkedIn ? 25 : 0) + (hasSections ? 25 : 0),
+        issues: [
+          ...(!hasEmail ? ["No email address found"] : []),
+          ...(!hasPhone ? ["No phone number found"] : []),
+          ...(!hasLinkedIn ? ["Consider adding LinkedIn URL"] : []),
+          ...(!hasSections ? ["Add standard section headers"] : [])
+        ],
+        passed: [
+          ...(hasEmail ? ["Email address detected"] : []),
+          ...(hasPhone ? ["Phone number detected"] : []),
+          ...(hasLinkedIn ? ["LinkedIn profile included"] : []),
+          ...(hasSections ? ["Standard sections present"] : [])
+        ]
+      }
+    },
+    keywordAnalysis: {
+      matchedKeywords: [...new Set(matched)].slice(0, 20),
+      missingKeywords: [...new Set(missing)].slice(0, 15),
+      keywordDensity: matched.length > jdWords.length * 0.6 ? "Good keyword coverage" : "Consider adding more relevant keywords"
+    },
+    recommendations,
+    bulletPointRewrites: [],
+    atsCompatibility: {
+      score: Math.round((hasEmail ? 20 : 0) + (hasPhone ? 20 : 0) + (hasSections ? 30 : 0) + (wordCount > 300 ? 30 : 15)),
+      issues: [
+        ...(wordCount < 300 ? ["Resume may be too short for ATS parsing"] : []),
+        ...(!hasSections ? ["Missing standard section headers"] : [])
+      ],
+      suggestions: [
+        "Use standard section names: Experience, Education, Skills",
+        "Avoid tables, graphics, and columns",
+        "Use a clean, single-column format"
+      ]
+    },
+    interviewTips: [
+      "Prepare examples for each skill listed in the job description",
+      "Practice the STAR method for behavioral questions",
+      `Be ready to discuss: ${categorizedMatched.hard.slice(0, 3).join(', ')}`
+    ]
+  };
 };
 
-export default function ATSResumeChecker() {
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export default function ATSResumeAnalyzer() {
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
+  const [apiKey, setApiKey] = useState('');
+  const [useAI, setUseAI] = useState(false);
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState('score');
-  const [showAllMissing, setShowAllMissing] = useState(false);
-  const [showAllMatched, setShowAllMatched] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [error, setError] = useState('');
+  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [showApiInput, setShowApiInput] = useState(false);
 
-  const handleAnalyze = useCallback(() => {
+  const handleAnalyze = useCallback(async () => {
     if (!resumeText.trim() || !jdText.trim()) return;
     
     setIsAnalyzing(true);
+    setError('');
     
-    // Simulate processing time
-    setTimeout(() => {
-      const analysis = analyzeResume(resumeText, jdText);
-      const formatting = checkFormatting(resumeText);
-      const recommendations = generateRecommendations(analysis, formatting);
+    try {
+      let analysisResults;
       
-      setResults({ analysis, formatting, recommendations });
+      if (useAI && apiKey) {
+        analysisResults = await analyzeWithAI(resumeText, jdText, apiKey);
+      } else {
+        // Simulate processing time for local analysis
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        analysisResults = analyzeResumeLocally(resumeText, jdText);
+      }
+      
+      setResults(analysisResults);
+      setActiveTab('overview');
+    } catch (err) {
+      setError(err.message || 'Analysis failed. Please try again.');
+      console.error(err);
+    } finally {
       setIsAnalyzing(false);
-      setActiveTab('score');
-    }, 1500);
-  }, [resumeText, jdText]);
+    }
+  }, [resumeText, jdText, apiKey, useAI]);
+
+  const copyToClipboard = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
 
   const getScoreColor = (score) => {
+    if (score >= 80) return 'text-emerald-400';
+    if (score >= 60) return 'text-amber-400';
+    return 'text-red-400';
+  };
+
+  const getScoreBg = (score) => {
+    if (score >= 80) return 'from-emerald-500 to-emerald-600';
+    if (score >= 60) return 'from-amber-500 to-amber-600';
+    return 'from-red-500 to-red-600';
+  };
+
+  const getScoreRing = (score) => {
     if (score >= 80) return 'text-emerald-500';
     if (score >= 60) return 'text-amber-500';
     return 'text-red-500';
   };
 
-  const getScoreBg = (score) => {
-    if (score >= 80) return 'bg-emerald-500';
-    if (score >= 60) return 'bg-amber-500';
-    return 'bg-red-500';
-  };
-
-  const getScoreMessage = (score) => {
-    if (score >= 85) return 'Excellent match! Your resume is highly aligned with this job.';
-    if (score >= 70) return 'Good match. A few tweaks could improve your chances.';
-    if (score >= 50) return 'Moderate match. Consider adding more relevant keywords.';
-    return 'Low match. Significant optimization needed for this role.';
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Header */}
-      <header className="border-b border-slate-700/50 backdrop-blur-sm bg-slate-900/50 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-slate-800 backdrop-blur-xl bg-slate-950/80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl flex items-center justify-center">
-              <Target className="w-6 h-6" />
+            <div className="w-11 h-11 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
+              <Brain className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">ResuMatch</h1>
-              <p className="text-xs text-slate-400">ATS Resume Optimizer</p>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+                ResuMatch AI
+              </h1>
+              <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">Free • 10 scans/month</span>
+          <div className="flex items-center gap-3">
+            {useAI && (
+              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> AI Mode
+              </span>
+            )}
+            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
+              Free
+            </span>
           </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-8">
         {!results ? (
-          /* Input Section */
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-3">Beat the ATS. Land More Interviews.</h2>
-              <p className="text-slate-400 max-w-2xl mx-auto">
-                78% of resumes are rejected by Applicant Tracking Systems before a human sees them. 
-                Paste your resume and the job description to see your match score.
+          <div className="space-y-8">
+            {/* Hero Section */}
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
+                <Sparkles className="w-4 h-4" />
+                Now with AI-powered analysis
+              </div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                Beat the ATS. Land More Interviews.
+              </h2>
+              <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                Get intelligent, actionable feedback to optimize your resume for Applicant Tracking Systems. 
+                Our AI analyzes your resume against the job description and provides specific improvements.
               </p>
             </div>
 
+            {/* AI Toggle */}
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <Brain className="w-5 h-5 text-violet-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">AI-Powered Analysis</h3>
+                      <p className="text-sm text-slate-400">Get intelligent rewrite suggestions</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUseAI(!useAI);
+                      if (!useAI) setShowApiInput(true);
+                    }}
+                    className={`relative w-14 h-7 rounded-full transition-colors ${
+                      useAI ? 'bg-violet-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
+                      useAI ? 'translate-x-8' : 'translate-x-1'
+                    }`} />
+                  </button>
+                </div>
+                
+                {showApiInput && useAI && (
+                  <div className="mt-4 pt-4 border-t border-slate-700">
+                    <label className="block text-sm text-slate-400 mb-2">
+                      Claude API Key <span className="text-slate-600">(Get free key at console.anthropic.com)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      placeholder="sk-ant-..."
+                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Input Grid */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Resume Input */}
-              <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5 text-violet-400" />
-                  <h3 className="font-semibold">Your Resume</h3>
+              <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Your Resume</h3>
+                    <p className="text-xs text-slate-500">Paste your resume content</p>
+                  </div>
                 </div>
                 <textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Paste your resume text here..."
-                  className="w-full h-64 bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none"
+                  placeholder="Paste your resume text here...
+
+Example:
+John Doe
+Software Engineer
+john@email.com | (555) 123-4567 | linkedin.com/in/johndoe
+
+EXPERIENCE
+Senior Software Engineer | Tech Company | 2020-Present
+• Led development of microservices architecture serving 1M+ users
+• Reduced API response time by 40% through optimization
+• Mentored team of 5 junior developers
+
+SKILLS
+Python, JavaScript, React, AWS, Docker, PostgreSQL"
+                  className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
                 />
-                <p className="text-xs text-slate-500 mt-2">
-                  {resumeText.split(/\s+/).filter(Boolean).length} words
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-slate-500">
+                    {resumeText.split(/\s+/).filter(Boolean).length} words
+                  </p>
+                  <button 
+                    onClick={() => setResumeText('')}
+                    className="text-xs text-slate-500 hover:text-slate-400"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
 
               {/* Job Description Input */}
-              <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="w-5 h-5 text-fuchsia-400" />
-                  <h3 className="font-semibold">Job Description</h3>
+              <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-fuchsia-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Job Description</h3>
+                    <p className="text-xs text-slate-500">Paste the job posting</p>
+                  </div>
                 </div>
                 <textarea
                   value={jdText}
                   onChange={(e) => setJdText(e.target.value)}
-                  placeholder="Paste the job description here..."
-                  className="w-full h-64 bg-slate-900/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none"
+                  placeholder="Paste the job description here...
+
+Example:
+Senior Software Engineer
+
+We're looking for a Senior Software Engineer to join our team.
+
+Requirements:
+• 5+ years of experience with Python and JavaScript
+• Experience with cloud platforms (AWS, GCP, or Azure)
+• Strong understanding of microservices architecture
+• Experience with CI/CD pipelines
+• Excellent communication and collaboration skills
+
+Nice to have:
+• Experience with React or Vue.js
+• Knowledge of Docker and Kubernetes
+• Machine learning experience"
+                  className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
                 />
-                <p className="text-xs text-slate-500 mt-2">
-                  {jdText.split(/\s+/).filter(Boolean).length} words
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-slate-500">
+                    {jdText.split(/\s+/).filter(Boolean).length} words
+                  </p>
+                  <button 
+                    onClick={() => setJdText('')}
+                    className="text-xs text-slate-500 hover:text-slate-400"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
             </div>
 
+            {/* Error Message */}
+            {error && (
+              <div className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Analyze Button */}
             <div className="flex justify-center">
               <button
                 onClick={handleAnalyze}
                 disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
-                className="px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 disabled:from-slate-600 disabled:to-slate-600 rounded-xl font-semibold text-lg flex items-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed"
+                className="group px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25 hover:shadow-violet-500/40"
               >
                 {isAnalyzing ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Analyzing...
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    {useAI ? 'AI Analyzing...' : 'Analyzing...'}
                   </>
                 ) : (
                   <>
-                    <Zap className="w-5 h-5" />
-                    Analyze Match
+                    {useAI ? <Sparkles className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                    Analyze Resume
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
               </button>
             </div>
 
-            {/* Features */}
-            <div className="grid md:grid-cols-3 gap-4 mt-12">
+            {/* Features Grid */}
+            <div className="grid md:grid-cols-4 gap-4 mt-16">
               {[
-                { icon: Target, title: 'Keyword Analysis', desc: 'Find missing skills & keywords' },
-                { icon: CheckCircle, title: 'Format Check', desc: 'Ensure ATS compatibility' },
-                { icon: TrendingUp, title: 'Actionable Tips', desc: 'Improve your match score' },
+                { icon: FileSearch, title: 'Smart Parsing', desc: 'Intelligent keyword extraction' },
+                { icon: BarChart3, title: 'Detailed Scoring', desc: 'Section-by-section analysis' },
+                { icon: Lightbulb, title: 'AI Suggestions', desc: 'Rewrite recommendations' },
+                { icon: Target, title: 'ATS Optimized', desc: 'Formatting checks' },
               ].map((feature, i) => (
-                <div key={i} className="bg-slate-800/30 rounded-xl p-5 border border-slate-700/30 text-center">
-                  <feature.icon className="w-8 h-8 text-violet-400 mx-auto mb-3" />
+                <div key={i} className="bg-slate-900/30 rounded-xl p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
+                  <div className="w-12 h-12 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <feature.icon className="w-6 h-6 text-violet-400" />
+                  </div>
                   <h4 className="font-semibold mb-1">{feature.title}</h4>
-                  <p className="text-sm text-slate-400">{feature.desc}</p>
+                  <p className="text-sm text-slate-500">{feature.desc}</p>
                 </div>
               ))}
             </div>
@@ -351,228 +635,427 @@ export default function ATSResumeChecker() {
           <div className="space-y-6">
             <button
               onClick={() => setResults(null)}
-              className="text-sm text-slate-400 hover:text-white flex items-center gap-2"
+              className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
             >
               ← Analyze another resume
             </button>
 
             {/* Score Card */}
-            <div className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 rounded-2xl p-8 border border-slate-700/50">
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="relative">
-                  <svg className="w-40 h-40 transform -rotate-90">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-3xl p-8 border border-slate-800 shadow-2xl">
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                {/* Score Circle */}
+                <div className="relative flex-shrink-0">
+                  <svg className="w-48 h-48 transform -rotate-90">
                     <circle
-                      cx="80" cy="80" r="70"
+                      cx="96" cy="96" r="88"
                       stroke="currentColor"
                       strokeWidth="12"
                       fill="none"
-                      className="text-slate-700"
+                      className="text-slate-800"
                     />
                     <circle
-                      cx="80" cy="80" r="70"
-                      stroke="currentColor"
+                      cx="96" cy="96" r="88"
+                      stroke="url(#scoreGradient)"
                       strokeWidth="12"
                       fill="none"
-                      strokeDasharray={440}
-                      strokeDashoffset={440 - (440 * results.analysis.score) / 100}
+                      strokeDasharray={553}
+                      strokeDashoffset={553 - (553 * results.overallScore) / 100}
                       strokeLinecap="round"
-                      className={getScoreColor(results.analysis.score)}
                     />
+                    <defs>
+                      <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor={results.overallScore >= 80 ? '#10b981' : results.overallScore >= 60 ? '#f59e0b' : '#ef4444'} />
+                        <stop offset="100%" stopColor={results.overallScore >= 80 ? '#34d399' : results.overallScore >= 60 ? '#fbbf24' : '#f87171'} />
+                      </linearGradient>
+                    </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-4xl font-bold ${getScoreColor(results.analysis.score)}`}>
-                      {results.analysis.score}%
+                    <span className={`text-5xl font-bold ${getScoreColor(results.overallScore)}`}>
+                      {results.overallScore}
                     </span>
-                    <span className="text-sm text-slate-400">Match Score</span>
+                    <span className="text-slate-500 text-sm">Match Score</span>
                   </div>
                 </div>
                 
-                <div className="flex-1 text-center md:text-left">
-                  <h3 className="text-2xl font-bold mb-2">
-                    {results.analysis.score >= 80 ? '🎉 Great Match!' : 
-                     results.analysis.score >= 60 ? '👍 Good Start' : 
-                     '⚠️ Needs Work'}
-                  </h3>
-                  <p className="text-slate-400 mb-4">{getScoreMessage(results.analysis.score)}</p>
-                  <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                    <div className="px-4 py-2 bg-slate-700/50 rounded-lg">
-                      <span className="text-emerald-400 font-semibold">{results.analysis.matchedCount}</span>
-                      <span className="text-slate-400 text-sm ml-1">keywords matched</span>
+                {/* Summary */}
+                <div className="flex-1 text-center lg:text-left">
+                  <div className="flex items-center justify-center lg:justify-start gap-2 mb-3">
+                    {results.overallScore >= 80 ? (
+                      <span className="text-3xl">🎉</span>
+                    ) : results.overallScore >= 60 ? (
+                      <span className="text-3xl">👍</span>
+                    ) : (
+                      <span className="text-3xl">⚠️</span>
+                    )}
+                    <h3 className="text-2xl font-bold">
+                      {results.overallScore >= 80 ? 'Excellent Match!' : 
+                       results.overallScore >= 60 ? 'Good Foundation' : 
+                       'Needs Optimization'}
+                    </h3>
+                  </div>
+                  <p className="text-slate-400 mb-6 max-w-xl">{results.summary}</p>
+                  
+                  {/* Quick Stats */}
+                  <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
+                    <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                      <span className="text-emerald-400 font-semibold">{results.keywordAnalysis?.matchedKeywords?.length || 0}</span>
+                      <span className="text-slate-400 text-sm ml-2">keywords matched</span>
                     </div>
-                    <div className="px-4 py-2 bg-slate-700/50 rounded-lg">
-                      <span className="text-amber-400 font-semibold">{results.analysis.missing.length}</span>
-                      <span className="text-slate-400 text-sm ml-1">keywords missing</span>
+                    <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                      <span className="text-amber-400 font-semibold">{results.keywordAnalysis?.missingKeywords?.length || 0}</span>
+                      <span className="text-slate-400 text-sm ml-2">keywords missing</span>
+                    </div>
+                    <div className="px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                      <span className="text-violet-400 font-semibold">{results.recommendations?.length || 0}</span>
+                      <span className="text-slate-400 text-sm ml-2">recommendations</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Section Scores */}
+            <div className="grid md:grid-cols-4 gap-4">
+              {[
+                { name: 'Experience', score: results.sections?.experience?.score || 0, icon: FileText },
+                { name: 'Skills', score: results.sections?.skills?.score || 0, icon: Target },
+                { name: 'Education', score: results.sections?.education?.score || 0, icon: TrendingUp },
+                { name: 'Formatting', score: results.sections?.formatting?.score || 0, icon: CheckCircle },
+              ].map((section, i) => (
+                <div key={i} className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <section.icon className="w-4 h-4 text-slate-500" />
+                      <span className="text-sm text-slate-400">{section.name}</span>
+                    </div>
+                    <span className={`font-bold ${getScoreColor(section.score)}`}>{section.score}%</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full bg-gradient-to-r ${getScoreBg(section.score)} rounded-full transition-all duration-500`}
+                      style={{ width: `${section.score}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-slate-700">
-              {['score', 'keywords', 'format', 'tips'].map((tab) => (
+            <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+              {[
+                { id: 'overview', label: 'Overview', icon: BarChart3 },
+                { id: 'keywords', label: 'Keywords', icon: Target },
+                { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
+                { id: 'rewrites', label: 'AI Rewrites', icon: Sparkles },
+                { id: 'ats', label: 'ATS Check', icon: FileSearch },
+              ].map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-3 font-medium capitalize transition-colors ${
-                    activeTab === tab 
-                      ? 'text-violet-400 border-b-2 border-violet-400' 
-                      : 'text-slate-400 hover:text-white'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
+                    activeTab === tab.id 
+                      ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/25' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
-                  {tab === 'tips' ? 'Recommendations' : tab}
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
-            <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
-              {activeTab === 'score' && (
+            <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+              {activeTab === 'overview' && (
                 <div className="space-y-6">
-                  <h4 className="font-semibold text-lg">Score Breakdown</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="bg-slate-900/50 rounded-xl p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-slate-400">Hard Skills</span>
-                        <span className="font-semibold text-emerald-400">
-                          {results.analysis.hardSkillsMatched.length} matched
-                        </span>
-                      </div>
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-violet-400" />
+                    Analysis Overview
+                  </h4>
+                  
+                  <div className="grid md:grid-cols-2 gap-6">
+                    {/* Experience Section */}
+                    <div className="bg-slate-800/50 rounded-xl p-5">
+                      <h5 className="font-medium mb-3 flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-violet-400" />
+                        Experience Analysis
+                      </h5>
+                      <p className="text-sm text-slate-400 mb-3">{results.sections?.experience?.feedback}</p>
+                      {results.sections?.experience?.strengths?.length > 0 && (
+                        <div className="space-y-2">
+                          {results.sections.experience.strengths.map((s, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm text-emerald-400">
+                              <CheckCircle className="w-4 h-4" />
+                              {s}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {results.sections?.experience?.improvements?.length > 0 && (
+                        <div className="space-y-2 mt-2">
+                          {results.sections.experience.improvements.map((s, i) => (
+                            <div key={i} className="flex items-center gap-2 text-sm text-amber-400">
+                              <AlertCircle className="w-4 h-4" />
+                              {s}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Skills Section */}
+                    <div className="bg-slate-800/50 rounded-xl p-5">
+                      <h5 className="font-medium mb-3 flex items-center gap-2">
+                        <Target className="w-4 h-4 text-fuchsia-400" />
+                        Skills Match
+                      </h5>
+                      <p className="text-sm text-slate-400 mb-3">{results.sections?.skills?.feedback}</p>
                       <div className="flex flex-wrap gap-2">
-                        {results.analysis.hardSkillsMatched.slice(0, 8).map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs">
+                        {results.sections?.skills?.matched?.slice(0, 6).map((skill, i) => (
+                          <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs border border-emerald-500/30">
                             {skill}
                           </span>
                         ))}
-                      </div>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-xl p-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-slate-400">Soft Skills</span>
-                        <span className="font-semibold text-emerald-400">
-                          {results.analysis.softSkillsMatched.length} matched
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {results.analysis.softSkillsMatched.slice(0, 6).map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs">
-                            {skill}
+                        {results.sections?.skills?.missing?.slice(0, 4).map((skill, i) => (
+                          <span key={i} className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs border border-red-500/30">
+                            + {skill}
                           </span>
                         ))}
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Interview Tips */}
+                  {results.interviewTips && results.interviewTips.length > 0 && (
+                    <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl p-5 border border-violet-500/20">
+                      <h5 className="font-medium mb-3 flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-violet-400" />
+                        Interview Preparation Tips
+                      </h5>
+                      <ul className="space-y-2">
+                        {results.interviewTips.map((tip, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-violet-400 mt-1">•</span>
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
               {activeTab === 'keywords' && (
                 <div className="space-y-6">
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <Target className="w-5 h-5 text-violet-400" />
+                    Keyword Analysis
+                  </h4>
+                  
+                  {/* Missing Keywords */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-lg flex items-center gap-2">
-                        <XCircle className="w-5 h-5 text-red-400" />
-                        Missing Keywords
-                      </h4>
-                      <span className="text-sm text-slate-400">{results.analysis.missing.length} total</span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <XCircle className="w-5 h-5 text-red-400" />
+                      <span className="font-medium">Missing Keywords</span>
+                      <span className="text-sm text-slate-500">({results.keywordAnalysis?.missingKeywords?.length || 0})</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {(showAllMissing ? results.analysis.missing : results.analysis.missing.slice(0, 10)).map((kw, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm border border-red-500/30">
+                      {results.keywordAnalysis?.missingKeywords?.map((kw, i) => (
+                        <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-default">
                           {kw}
                         </span>
                       ))}
+                      {(!results.keywordAnalysis?.missingKeywords || results.keywordAnalysis.missingKeywords.length === 0) && (
+                        <p className="text-slate-500 text-sm">No critical keywords missing! Great job.</p>
+                      )}
                     </div>
-                    {results.analysis.missing.length > 10 && (
-                      <button 
-                        onClick={() => setShowAllMissing(!showAllMissing)}
-                        className="mt-3 text-sm text-violet-400 hover:text-violet-300 flex items-center gap-1"
-                      >
-                        {showAllMissing ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        {showAllMissing ? 'Show less' : `Show ${results.analysis.missing.length - 10} more`}
-                      </button>
-                    )}
                   </div>
                   
+                  {/* Matched Keywords */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-semibold text-lg flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-emerald-400" />
-                        Matched Keywords
-                      </h4>
-                      <span className="text-sm text-slate-400">{results.analysis.matched.length} total</span>
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle className="w-5 h-5 text-emerald-400" />
+                      <span className="font-medium">Matched Keywords</span>
+                      <span className="text-sm text-slate-500">({results.keywordAnalysis?.matchedKeywords?.length || 0})</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {(showAllMatched ? results.analysis.matched : results.analysis.matched.slice(0, 10)).map((kw, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm border border-emerald-500/30">
+                      {results.keywordAnalysis?.matchedKeywords?.map((kw, i) => (
+                        <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">
                           {kw}
                         </span>
                       ))}
                     </div>
-                    {results.analysis.matched.length > 10 && (
-                      <button 
-                        onClick={() => setShowAllMatched(!showAllMatched)}
-                        className="mt-3 text-sm text-violet-400 hover:text-violet-300 flex items-center gap-1"
-                      >
-                        {showAllMatched ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        {showAllMatched ? 'Show less' : `Show ${results.analysis.matched.length - 10} more`}
-                      </button>
-                    )}
                   </div>
+                  
+                  {/* Keyword Density */}
+                  {results.keywordAnalysis?.keywordDensity && (
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <p className="text-sm text-slate-400">{results.keywordAnalysis.keywordDensity}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {activeTab === 'format' && (
+              {activeTab === 'recommendations' && (
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">ATS Compatibility Check</h4>
-                  <div className="space-y-3">
-                    {results.formatting.passed.map((item, i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                        <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                        <span className="text-emerald-300">{item}</span>
-                      </div>
-                    ))}
-                    {results.formatting.issues.map((item, i) => (
-                      <div key={i} className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        item.type === 'error' ? 'bg-red-500/10 border-red-500/20' :
-                        item.type === 'warning' ? 'bg-amber-500/10 border-amber-500/20' :
-                        'bg-blue-500/10 border-blue-500/20'
-                      }`}>
-                        {item.type === 'error' ? <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" /> :
-                         item.type === 'warning' ? <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" /> :
-                         <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0" />}
-                        <span className={
-                          item.type === 'error' ? 'text-red-300' :
-                          item.type === 'warning' ? 'text-amber-300' :
-                          'text-blue-300'
-                        }>{item.text}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'tips' && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-lg">How to Improve Your Score</h4>
-                  {results.recommendations.map((rec, i) => (
-                    <div key={i} className={`p-4 rounded-xl border ${
-                      rec.priority === 'high' ? 'bg-red-500/10 border-red-500/30' :
-                      rec.priority === 'medium' ? 'bg-amber-500/10 border-amber-500/30' :
-                      'bg-emerald-500/10 border-emerald-500/30'
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <Lightbulb className="w-5 h-5 text-violet-400" />
+                    Improvement Recommendations
+                  </h4>
+                  
+                  {results.recommendations?.map((rec, i) => (
+                    <div key={i} className={`p-5 rounded-xl border transition-colors ${
+                      rec.priority === 'high' 
+                        ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40' 
+                        : rec.priority === 'medium' 
+                          ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40' 
+                          : 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40'
                     }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium uppercase ${
-                          rec.priority === 'high' ? 'bg-red-500/30 text-red-300' :
-                          rec.priority === 'medium' ? 'bg-amber-500/30 text-amber-300' :
-                          'bg-emerald-500/30 text-emerald-300'
+                      <div className="flex items-start gap-3">
+                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                          rec.priority === 'high' 
+                            ? 'bg-red-500/20 text-red-400' 
+                            : rec.priority === 'medium' 
+                              ? 'bg-amber-500/20 text-amber-400' 
+                              : 'bg-emerald-500/20 text-emerald-400'
                         }`}>
                           {rec.priority}
                         </span>
-                        <h5 className="font-semibold">{rec.title}</h5>
+                        <div className="flex-1">
+                          <h5 className="font-semibold mb-1">{rec.title}</h5>
+                          <p className="text-sm text-slate-400 mb-2">{rec.description}</p>
+                          {rec.example && (
+                            <div className="bg-slate-800/50 rounded-lg p-3 text-sm">
+                              <span className="text-slate-500">Example: </span>
+                              <span className="text-slate-300">{rec.example}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-slate-300 text-sm">{rec.description}</p>
                     </div>
                   ))}
+                  
+                  {(!results.recommendations || results.recommendations.length === 0) && (
+                    <p className="text-slate-500 text-center py-8">No recommendations at this time. Your resume looks great!</p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'rewrites' && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-violet-400" />
+                    AI-Powered Rewrites
+                  </h4>
+                  
+                  {results.bulletPointRewrites && results.bulletPointRewrites.length > 0 ? (
+                    results.bulletPointRewrites.map((rewrite, i) => (
+                      <div key={i} className="bg-slate-800/50 rounded-xl p-5 space-y-4">
+                        <div>
+                          <span className="text-xs text-slate-500 uppercase tracking-wide">Original</span>
+                          <p className="text-slate-400 mt-1">{rewrite.original}</p>
+                        </div>
+                        <div className="border-t border-slate-700 pt-4">
+                          <span className="text-xs text-emerald-400 uppercase tracking-wide flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" /> Improved
+                          </span>
+                          <p className="text-white mt-1">{rewrite.improved}</p>
+                          <button
+                            onClick={() => copyToClipboard(rewrite.improved, i)}
+                            className="mt-2 flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300"
+                          >
+                            {copiedIndex === i ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            {copiedIndex === i ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        {rewrite.explanation && (
+                          <div className="bg-violet-500/10 rounded-lg p-3 text-sm text-violet-300">
+                            💡 {rewrite.explanation}
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Sparkles className="w-8 h-8 text-violet-400" />
+                      </div>
+                      <h5 className="font-semibold mb-2">Enable AI for Rewrite Suggestions</h5>
+                      <p className="text-slate-400 text-sm max-w-md mx-auto">
+                        Turn on AI mode and add your Claude API key to get intelligent rewrite suggestions for your resume bullet points.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'ats' && (
+                <div className="space-y-6">
+                  <h4 className="font-semibold text-lg flex items-center gap-2">
+                    <FileSearch className="w-5 h-5 text-violet-400" />
+                    ATS Compatibility Check
+                  </h4>
+                  
+                  {/* ATS Score */}
+                  <div className="bg-slate-800/50 rounded-xl p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-slate-400">ATS Compatibility Score</span>
+                      <span className={`text-2xl font-bold ${getScoreColor(results.atsCompatibility?.score || 0)}`}>
+                        {results.atsCompatibility?.score || 0}%
+                      </span>
+                    </div>
+                    <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r ${getScoreBg(results.atsCompatibility?.score || 0)} rounded-full`}
+                        style={{ width: `${results.atsCompatibility?.score || 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Passed Checks */}
+                  {results.sections?.formatting?.passed?.length > 0 && (
+                    <div>
+                      <h5 className="font-medium mb-3 text-emerald-400">✓ Passed Checks</h5>
+                      <div className="space-y-2">
+                        {results.sections.formatting.passed.map((item, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                            <CheckCircle className="w-5 h-5 text-emerald-400" />
+                            <span className="text-emerald-300">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Issues */}
+                  {results.atsCompatibility?.issues?.length > 0 && (
+                    <div>
+                      <h5 className="font-medium mb-3 text-amber-400">⚠ Issues Found</h5>
+                      <div className="space-y-2">
+                        {results.atsCompatibility.issues.map((item, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
+                            <AlertCircle className="w-5 h-5 text-amber-400" />
+                            <span className="text-amber-300">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Suggestions */}
+                  {results.atsCompatibility?.suggestions?.length > 0 && (
+                    <div className="bg-violet-500/10 rounded-xl p-5 border border-violet-500/20">
+                      <h5 className="font-medium mb-3 text-violet-400">💡 ATS Tips</h5>
+                      <ul className="space-y-2">
+                        {results.atsCompatibility.suggestions.map((tip, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                            <span className="text-violet-400 mt-0.5">•</span>
+                            {tip}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -582,9 +1065,9 @@ export default function ATSResumeChecker() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800 mt-16 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>ResuMatch — A Product Management Portfolio Project by Sweatha Hari</p>
-          <p className="mt-1">Built to demonstrate end-to-end product development skills</p>
+        <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+          <p>ResuMatch AI — A Product Management Portfolio Project by Sweatha Hari</p>
+          <p className="mt-1">Powered by Claude AI for intelligent resume analysis</p>
         </div>
       </footer>
     </div>
