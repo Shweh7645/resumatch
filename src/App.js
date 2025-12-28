@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight, Cpu, Clock, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, Lightbulb, Cpu, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award } from 'lucide-react';
 
 // ============================================
-// SYNONYM DICTIONARY FOR IMPROVED MATCHING
+// SYNONYM DICTIONARY - Maps variations to canonical form
 // ============================================
 
 const synonyms = {
@@ -54,7 +54,7 @@ const synonyms = {
   'productmanagement': ['product management', 'product manager', 'pm', 'product owner', 'po'],
   'projectmanagement': ['project management', 'project manager', 'pmp'],
   
-  // Soft Skills
+  // Soft Skills - Action verbs mapped to skill
   'leadership': ['led', 'leading', 'leader', 'manage', 'managed', 'managing', 'oversaw', 'supervised', 'directed', 'head', 'headed', 'spearheaded'],
   'communication': ['communicate', 'communicated', 'communicating', 'verbal', 'written', 'presentation', 'presenting', 'presented'],
   'collaboration': ['collaborate', 'collaborated', 'collaborating', 'team player', 'teamwork', 'cross-functional', 'cross functional', 'partnered', 'partnering'],
@@ -62,7 +62,7 @@ const synonyms = {
   'analytical': ['analysis', 'analyze', 'analyzed', 'analyzing', 'analytics', 'analytical skills', 'data-driven', 'data driven'],
   'strategic': ['strategy', 'strategic thinking', 'strategize', 'strategic planning'],
   
-  // Common role terms
+  // Role terms
   'fullstack': ['full stack', 'full-stack', 'frontend and backend', 'front and back end'],
   'frontend': ['front end', 'front-end', 'ui', 'user interface', 'client side', 'client-side'],
   'backend': ['back end', 'back-end', 'server side', 'server-side', 'api development'],
@@ -78,7 +78,16 @@ const synonyms = {
   
   // API & Integration
   'api': ['apis', 'rest', 'restful', 'rest api', 'graphql', 'endpoint', 'endpoints', 'web services', 'microservices'],
-  'testing': ['test', 'tests', 'qa', 'quality assurance', 'unit testing', 'integration testing', 'e2e', 'end to end', 'automated testing', 'test automation']
+  'testing': ['test', 'tests', 'qa', 'quality assurance', 'unit testing', 'integration testing', 'e2e', 'end to end', 'automated testing', 'test automation'],
+  
+  // Product Management specific
+  'prd': ['product requirements', 'product requirements document', 'requirements document'],
+  'roadmap': ['product roadmap', 'roadmapping', 'product planning'],
+  'backlog': ['product backlog', 'backlog management', 'backlog grooming', 'backlog refinement'],
+  'userstories': ['user stories', 'user story', 'stories'],
+  'stakeholder': ['stakeholders', 'stakeholder management', 'stakeholder collaboration'],
+  'ux': ['user experience', 'usability', 'user research'],
+  'designcollaboration': ['design collaboration', 'work with design', 'collaborate with design', 'design team']
 };
 
 // Build reverse lookup map
@@ -95,13 +104,17 @@ const buildSynonymMap = () => {
 
 const synonymMap = buildSynonymMap();
 
+// ============================================
+// TEXT PROCESSING FUNCTIONS
+// ============================================
+
 // Normalize keyword to canonical form
 const normalizeKeyword = (keyword) => {
   const lower = keyword.toLowerCase().trim();
   return synonymMap.get(lower) || lower;
 };
 
-// Simple stemming
+// Simple stemming - reduce words to root form
 const stem = (word) => {
   let result = word.toLowerCase();
   const suffixes = ['ization', 'isation', 'ational', 'fulness', 'ousness', 'iveness', 'ement', 'ment', 'ence', 'ance', 'able', 'ible', 'ness', 'less', 'tion', 'sion', 'ally', 'ful', 'ous', 'ive', 'ing', 'ied', 'ies', 'ed', 'er', 'es', 'ly', 's'];
@@ -137,8 +150,9 @@ const extractPhrases = (text) => {
     'product development life cycle', 'pdlc', 'sdlc', 'software development life cycle',
     'backlog management', 'release planning', 'sprint review', 'retrospective',
     'design collaboration', 'ux design', 'ui ux', 'user stories', 'acceptance criteria',
-    'customer interviews', 'market research', 'competitive analysis', 'prd',
-    'product requirements', 'requirements documentation', 'technical specifications'
+    'customer interviews', 'market research', 'competitive analysis',
+    'product requirements', 'requirements documentation', 'technical specifications',
+    'hypothesis driven', 'customer driven', 'sales enablement', 'release cadence'
   ];
   
   const lowerText = text.toLowerCase();
@@ -150,23 +164,27 @@ const extractPhrases = (text) => {
   return phrases;
 };
 
-// Clean text from LinkedIn/job board UI noise
+// ============================================
+// NOISE FILTERING - Remove LinkedIn/Job Board UI junk
+// ============================================
+
 const cleanText = (text) => {
+  // Regex patterns to remove
   const noisePatterns = [
-    /reposted \d+ (hours?|days?|weeks?|months?) ago/gi,
-    /posted \d+ (hours?|days?|weeks?|months?) ago/gi,
-    /\d+ (hours?|days?|weeks?|months?) ago/gi,
-    /\d+ people clicked apply/gi,
-    /\d+ applicants?/gi,
-    /show more/gi,
-    /show less/gi,
-    /see more/gi,
-    /see less/gi,
-    /easy apply/gi,
-    /apply now/gi,
-    /save job/gi,
-    /share this job/gi,
-    /report this job/gi,
+    /reposted\s*\d*\s*(hours?|days?|weeks?|months?)?\s*ago/gi,
+    /posted\s*\d*\s*(hours?|days?|weeks?|months?)?\s*ago/gi,
+    /\d+\s*(hours?|days?|weeks?|months?)\s*ago/gi,
+    /\d+\s*people\s*clicked\s*apply/gi,
+    /\d+\s*applicants?/gi,
+    /show\s*more/gi,
+    /show\s*less/gi,
+    /see\s*more/gi,
+    /see\s*less/gi,
+    /easy\s*apply/gi,
+    /apply\s*now/gi,
+    /save\s*job/gi,
+    /share\s*this\s*job/gi,
+    /report\s*this\s*job/gi,
     /promoted/gi,
     /sponsored/gi,
     /logo$/gm,
@@ -174,6 +192,10 @@ const cleanText = (text) => {
     /\|\|/g,
     /www\.\S+/gi,
     /https?:\/\/\S+/gi,
+    /back\s*to\s*edit/gi,
+    /parsed\s*resume/gi,
+    /regenerate/gi,
+    /accept\s*at\s*least/gi,
   ];
   
   let cleaned = text;
@@ -181,71 +203,105 @@ const cleanText = (text) => {
     cleaned = cleaned.replace(pattern, ' ');
   }
   
+  // Remove concatenated junk words (like "logoshareshowoptionsbengaluru")
+  // Split camelCase-like concatenations
+  cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1 $2');
+  
   return cleaned;
 };
 
-// Main keyword extraction
+// ============================================
+// STOPWORDS - Words to ignore
+// ============================================
+
+const stopWords = new Set([
+  // Common English
+  'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
+  'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
+  'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 
+  'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those', 'i', 'you', 
+  'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 
+  'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 
+  'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
+  'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 
+  'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 
+  'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 
+  'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any',
+  
+  // Generic job posting words
+  'well', 'work', 'working', 'experience', 'year', 'years', 'ability', 'strong',
+  'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities',
+  'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based',
+  'across', 'within', 'along', 'among', 'around', 'looking', 'seeking', 'required',
+  'requirements', 'qualifications', 'preferred', 'plus', 'bonus', 'nice', 'ideal',
+  'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams',
+  
+  // LinkedIn/Job Board UI noise
+  'logo', 'share', 'show', 'options', 'reposted', 'posted', 'hours', 'ago',
+  'people', 'clicked', 'apply', 'promoted', 'hirer', 'hiring', 'actively',
+  'applicants', 'applicant', 'easy', 'save', 'saved', 'report', 'hide',
+  'follow', 'following', 'followers', 'connections', 'connection', 'connect',
+  'message', 'messages', 'view', 'views', 'like', 'likes', 'comment', 'comments',
+  'reactions', 'reaction', 'celebrate', 'love', 'insightful', 'curious',
+  'repost', 'send', 'copy', 'link', 'embed', 'linkedin', 'indeed', 'glassdoor',
+  'naukri', 'monster', 'ziprecruiter', 'dice', 'careers', 'jobs',
+  'back', 'edit', 'parsed', 'resume', 'regenerate', 'pending', 'accepted',
+  'rejected', 'modifications', 'restructuring', 'issue', 'detected',
+  
+  // Location noise - Cities/States/Countries
+  'remote', 'hybrid', 'onsite', 'office', 'location', 'locations',
+  'bengaluru', 'bangalore', 'mumbai', 'delhi', 'hyderabad', 'chennai', 'pune',
+  'gurgaon', 'gurugram', 'noida', 'kolkata', 'ahmedabad', 'india', 'indian',
+  'karnataka', 'maharashtra', 'telangana', 'tamil', 'nadu', 'kerala',
+  'east', 'west', 'north', 'south', 'central',
+  'usa', 'america', 'american', 'california', 'texas', 'york', 'francisco',
+  'seattle', 'boston', 'chicago', 'austin', 'denver', 'atlanta', 'angeles',
+  'london', 'uk', 'england', 'europe', 'european', 'singapore', 'dubai',
+  'canada', 'toronto', 'vancouver', 'australia', 'sydney', 'melbourne',
+  
+  // Time-related noise
+  'today', 'yesterday', 'week', 'weeks', 'month', 'months', 'day', 'days',
+  'hour', 'minutes', 'recently', 'immediate', 'immediately', 'asap', 'urgent',
+  
+  // Generic job posting fluff
+  'description', 'overview', 'summary', 'details', 'information', 'info',
+  'application', 'applications', 'submit', 'click', 'button',
+  'equal', 'opportunity', 'employer', 'eoe', 'diversity', 'inclusive',
+  'benefits', 'salary', 'compensation', 'package', 'perks', 'insurance',
+  'health', 'dental', 'vision', 'retirement', '401k', 'pto', 'vacation',
+  'candidate', 'candidates', 'talent', 'talented', 'individual', 'individuals',
+  'join', 'joining', 'grow', 'growth', 'career', 'opportunities',
+  
+  // Numbers and misc
+  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'
+]);
+
+// ============================================
+// KEYWORD EXTRACTION
+// ============================================
+
 const extractKeywords = (text) => {
+  // Clean noise first
   const cleanedText = cleanText(text);
   
-  const stopWords = new Set([
-    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
-    'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
-    'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 
-    'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those', 'i', 'you', 
-    'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 
-    'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 
-    'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
-    'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 
-    'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 
-    'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 
-    'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any',
-    'well', 'work', 'working', 'experience', 'year', 'years', 'ability', 'strong',
-    'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities',
-    'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based',
-    'across', 'within', 'along', 'among', 'around', 'looking', 'seeking', 'required',
-    'requirements', 'qualifications', 'preferred', 'plus', 'bonus', 'nice', 'ideal',
-    'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams',
-    'logo', 'share', 'show', 'options', 'reposted', 'posted', 'hours', 'ago',
-    'people', 'clicked', 'apply', 'promoted', 'hirer', 'hiring', 'actively',
-    'applicants', 'applicant', 'easy', 'save', 'saved', 'report', 'hide',
-    'follow', 'following', 'followers', 'connections', 'connection', 'connect',
-    'message', 'messages', 'view', 'views', 'like', 'likes', 'comment', 'comments',
-    'reactions', 'reaction', 'celebrate', 'love', 'insightful', 'curious',
-    'repost', 'send', 'copy', 'link', 'embed', 'linkedin', 'indeed', 'glassdoor',
-    'naukri', 'monster', 'ziprecruiter', 'dice', 'careers', 'jobs',
-    'remote', 'hybrid', 'onsite', 'office', 'location', 'locations',
-    'bengaluru', 'bangalore', 'mumbai', 'delhi', 'hyderabad', 'chennai', 'pune',
-    'gurgaon', 'gurugram', 'noida', 'kolkata', 'ahmedabad', 'india', 'indian',
-    'karnataka', 'maharashtra', 'telangana', 'tamil', 'nadu', 'kerala',
-    'east', 'west', 'north', 'south', 'central',
-    'usa', 'america', 'american', 'california', 'texas', 'york', 'francisco',
-    'seattle', 'boston', 'chicago', 'austin', 'denver', 'atlanta',
-    'london', 'uk', 'england', 'europe', 'european', 'singapore', 'dubai',
-    'today', 'yesterday', 'week', 'weeks', 'month', 'months', 'day', 'days',
-    'hour', 'minutes', 'recently', 'immediate', 'immediately', 'asap', 'urgent',
-    'description', 'overview', 'summary', 'details', 'information', 'info',
-    'application', 'applications', 'submit', 'click', 'button',
-    'equal', 'opportunity', 'employer', 'eoe', 'diversity', 'inclusive',
-    'benefits', 'salary', 'compensation', 'package', 'perks', 'insurance',
-    'health', 'dental', 'vision', 'retirement', '401k', 'pto', 'vacation',
-    'candidate', 'candidates', 'talent', 'talented', 'individual', 'individuals',
-    'join', 'joining', 'grow', 'growth', 'career', 'opportunity', 'opportunities'
-  ]);
-  
+  // Extract phrases
   const phrases = extractPhrases(cleanedText);
   
+  // Extract and filter words
   const words = cleanedText
     .toLowerCase()
     .replace(/[^a-zA-Z0-9\s\+\#\.]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 2 && !stopWords.has(word));
   
+  // Normalize and deduplicate
   const normalizedWords = new Set();
   
   for (const word of words) {
     const normalized = normalizeKeyword(word);
-    normalizedWords.add(normalized);
+    if (normalized.length > 2 && !stopWords.has(normalized)) {
+      normalizedWords.add(normalized);
+    }
   }
   
   for (const phrase of phrases) {
@@ -256,21 +312,24 @@ const extractKeywords = (text) => {
   return Array.from(normalizedWords);
 };
 
-// Categorize skill type
+// ============================================
+// SKILL CATEGORIZATION
+// ============================================
+
 const categorizeSkill = (keyword) => {
   const hardSkillPatterns = [
-    /python|java|javascript|typescript|golang|ruby|php|swift|kotlin|scala|rust|c\+\+|csharp/i,
-    /react|angular|vue|django|flask|spring|express|next|rails|laravel/i,
+    /python|java|javascript|typescript|golang|ruby|php|swift|kotlin|scala|rust|cplusplus|csharp/i,
+    /react|angular|vue|django|flask|spring|express|nextjs|rails|laravel/i,
     /sql|postgres|mysql|mongodb|redis|elasticsearch|dynamodb|cassandra|oracle/i,
-    /aws|azure|gcp|cloud|kubernetes|docker|terraform|ansible|jenkins/i,
+    /aws|azure|gcp|cloud|kubernetes|docker|terraform|ansible|jenkins|cicd/i,
     /git|jira|confluence|figma|sketch|tableau|powerbi|excel/i,
     /pandas|numpy|spark|hadoop|kafka|airflow|dbt|snowflake|databricks/i,
     /tensorflow|pytorch|keras|scikit|machinelearning|datascience|nlp|computervision/i,
-    /api|rest|graphql|microservices|cicd|devops|agile|scrum|kanban/i,
+    /api|rest|graphql|microservices|devops|agile|scrum|kanban/i,
     /html|css|sass|webpack|npm|yarn|testing|selenium|cypress/i,
     /linux|unix|bash|powershell|networking|security|encryption/i,
     /fullstack|frontend|backend|dataengineering|productmanagement/i,
-    /prd|roadmap|backlog|sprint|release|pdlc|sdlc/i
+    /prd|roadmap|backlog|sprint|release|pdlc|sdlc|userstories/i
   ];
   
   const softSkillPatterns = [
@@ -278,7 +337,7 @@ const categorizeSkill = (keyword) => {
     /analytical|creative|strategic|innovative|adaptable|flexible/i,
     /organized|detail|motivated|proactive|reliable|dependable/i,
     /interpersonal|negotiation|presentation|mentoring|coaching/i,
-    /decision|time.management|prioritization|critical|thinking/i,
+    /decision|time|prioritization|critical|thinking/i,
     /customer|results|goal|stakeholder|influence|persuasion|empathy/i
   ];
   
@@ -295,7 +354,10 @@ const categorizeSkill = (keyword) => {
   return 'general';
 };
 
-// Match keywords
+// ============================================
+// KEYWORD MATCHING
+// ============================================
+
 const matchKeywords = (resumeKeywords, jdKeywords) => {
   const matched = [];
   const missing = [];
@@ -307,22 +369,32 @@ const matchKeywords = (resumeKeywords, jdKeywords) => {
     const normalizedJD = normalizeKeyword(jdKeyword);
     const stemmedJD = stem(normalizedJD);
     
+    // Skip if it's a stopword
+    if (stopWords.has(normalizedJD) || stopWords.has(jdKeyword.toLowerCase())) {
+      continue;
+    }
+    
+    // Exact match after normalization
     if (resumeSet.has(normalizedJD)) {
       matched.push({ keyword: jdKeyword, matchType: 'exact' });
       continue;
     }
     
+    // Stemmed match
     if (resumeStemmed.has(stemmedJD)) {
       matched.push({ keyword: jdKeyword, matchType: 'stemmed' });
       continue;
     }
     
+    // Partial/contains match
     let found = false;
     for (const resumeKeyword of resumeSet) {
-      if (resumeKeyword.includes(normalizedJD) || normalizedJD.includes(resumeKeyword)) {
-        matched.push({ keyword: jdKeyword, matchType: 'partial' });
-        found = true;
-        break;
+      if (resumeKeyword.length > 3 && normalizedJD.length > 3) {
+        if (resumeKeyword.includes(normalizedJD) || normalizedJD.includes(resumeKeyword)) {
+          matched.push({ keyword: jdKeyword, matchType: 'partial' });
+          found = true;
+          break;
+        }
       }
     }
     
@@ -334,7 +406,10 @@ const matchKeywords = (resumeKeywords, jdKeywords) => {
   return { matched, missing };
 };
 
-// Local analysis
+// ============================================
+// LOCAL ANALYSIS
+// ============================================
+
 const analyzeResumeLocally = (resumeText, jdText) => {
   const resumeKeywords = extractKeywords(resumeText);
   const jdKeywords = extractKeywords(jdText);
@@ -342,6 +417,7 @@ const analyzeResumeLocally = (resumeText, jdText) => {
   const { matched, missing } = matchKeywords(resumeKeywords, jdKeywords);
   const matchedKeywords = matched.map(m => m.keyword);
   
+  // Categorize
   const matchedHard = matchedKeywords.filter(k => categorizeSkill(k) === 'hard');
   const matchedSoft = matchedKeywords.filter(k => categorizeSkill(k) === 'soft');
   const missingHard = missing.filter(k => categorizeSkill(k) === 'hard');
@@ -350,6 +426,7 @@ const analyzeResumeLocally = (resumeText, jdText) => {
   const jdHard = jdKeywords.filter(k => categorizeSkill(k) === 'hard');
   const jdSoft = jdKeywords.filter(k => categorizeSkill(k) === 'soft');
   
+  // Calculate scores
   const hardScore = jdHard.length > 0 ? (matchedHard.length / jdHard.length) * 100 : 100;
   const softScore = jdSoft.length > 0 ? (matchedSoft.length / jdSoft.length) * 100 : 100;
   const generalScore = jdKeywords.length > 0 ? (matchedKeywords.length / jdKeywords.length) * 100 : 0;
@@ -370,11 +447,20 @@ const analyzeResumeLocally = (resumeText, jdText) => {
 
   const atsScore = Math.round((hasEmail ? 20 : 0) + (hasPhone ? 20 : 0) + (hasSections ? 30 : 0) + (wordCount > 300 ? 30 : 15));
 
+  // Filter out any remaining noise from final keyword lists
+  const cleanKeywordList = (keywords) => {
+    return [...new Set(keywords)].filter(k => 
+      k.length > 2 && 
+      !stopWords.has(k.toLowerCase()) &&
+      !/^(logo|share|options|bengaluru|karnataka|east|west|hours|ago|people|clicked|apply|promoted|hirer)$/i.test(k)
+    );
+  };
+
   return {
     overallScore,
     atsScore,
-    matchedKeywords: [...new Set(matchedKeywords)],
-    missingKeywords: [...new Set(missing)],
+    matchedKeywords: cleanKeywordList(matchedKeywords),
+    missingKeywords: cleanKeywordList(missing),
     hardScore: Math.round(hardScore),
     softScore: Math.round(softScore),
     formatChecks: {
@@ -415,13 +501,13 @@ export default function ATSResumeAnalyzer() {
     
     setIsAnalyzing(true);
     setError('');
-    setAnalysisStage('Extracting keywords...');
+    setAnalysisStage('Cleaning input...');
     setModifications([]);
     
     try {
       // STEP 1: Local analysis
       await new Promise(resolve => setTimeout(resolve, 300));
-      setAnalysisStage('Matching skills...');
+      setAnalysisStage('Matching keywords...');
       
       const localResults = analyzeResumeLocally(resumeText, jdText);
       
@@ -448,7 +534,6 @@ export default function ATSResumeAnalyzer() {
             _meta: { ...localResults._meta, aiEnhanced: true }
           });
           
-          // Set modifications with pending status
           if (aiResults.modifications) {
             setModifications(aiResults.modifications.map((mod, i) => ({
               ...mod,
@@ -519,14 +604,21 @@ export default function ATSResumeAnalyzer() {
               <p className="text-xs text-slate-500">Smart ATS Optimizer</p>
             </div>
           </div>
-          {results && (
-            <button
-              onClick={() => setResults(null)}
-              className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
-            >
-              ← New Analysis
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {results && (
+              <button
+                onClick={() => setResults(null)}
+                className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
+              >
+                ← New Analysis
+              </button>
+            )}
+            {results?._meta?.aiEnhanced && (
+              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> AI Enhanced
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
@@ -535,6 +627,13 @@ export default function ATSResumeAnalyzer() {
           /* INPUT SECTION */
           <div className="space-y-8">
             <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
+                <Cpu className="w-4 h-4" />
+                <span>Smart Synonym Matching</span>
+                <span className="text-slate-600">+</span>
+                <Sparkles className="w-4 h-4" />
+                <span>AI Insights</span>
+              </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Optimize Your Resume for ATS
               </h2>
@@ -561,9 +660,14 @@ export default function ATSResumeAnalyzer() {
                   placeholder="Paste your resume text here..."
                   className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
                 />
-                <p className="text-xs text-slate-500 mt-2">
-                  {resumeText.split(/\s+/).filter(Boolean).length} words
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-slate-500">
+                    {resumeText.split(/\s+/).filter(Boolean).length} words
+                  </p>
+                  <button onClick={() => setResumeText('')} className="text-xs text-slate-500 hover:text-slate-400">
+                    Clear
+                  </button>
+                </div>
               </div>
 
               {/* Job Description Input */}
@@ -583,9 +687,14 @@ export default function ATSResumeAnalyzer() {
                   placeholder="Paste the job description here..."
                   className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
                 />
-                <p className="text-xs text-slate-500 mt-2">
-                  {jdText.split(/\s+/).filter(Boolean).length} words
-                </p>
+                <div className="flex justify-between items-center mt-2">
+                  <p className="text-xs text-slate-500">
+                    {jdText.split(/\s+/).filter(Boolean).length} words
+                  </p>
+                  <button onClick={() => setJdText('')} className="text-xs text-slate-500 hover:text-slate-400">
+                    Clear
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -613,6 +722,24 @@ export default function ATSResumeAnalyzer() {
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Feature highlights */}
+            <div className="grid md:grid-cols-4 gap-4 mt-12">
+              {[
+                { icon: Cpu, title: 'Smart Synonyms', desc: '"JS" matches "JavaScript"', color: 'blue' },
+                { icon: BarChart3, title: 'Noise Filtering', desc: 'Removes LinkedIn junk', color: 'violet' },
+                { icon: Edit3, title: 'AI Suggestions', desc: 'Accept or reject changes', color: 'fuchsia' },
+                { icon: Target, title: 'ATS Optimized', desc: 'Beat the robots', color: 'emerald' },
+              ].map((feature, i) => (
+                <div key={i} className="bg-slate-900/30 rounded-xl p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
+                  <div className={`w-12 h-12 bg-${feature.color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                    <feature.icon className={`w-6 h-6 text-${feature.color}-400`} />
+                  </div>
+                  <h4 className="font-semibold mb-1">{feature.title}</h4>
+                  <p className="text-sm text-slate-500">{feature.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         ) : (
@@ -695,7 +822,7 @@ export default function ATSResumeAnalyzer() {
                   </h3>
                   
                   {results.executiveSummary ? (
-                    <div className="prose prose-invert max-w-none">
+                    <div className="bg-slate-800/50 rounded-xl p-5">
                       <p className="text-slate-300 leading-relaxed whitespace-pre-line">
                         {results.executiveSummary}
                       </p>
@@ -747,7 +874,7 @@ export default function ATSResumeAnalyzer() {
               {activeTab === 'modifications' && (
                 <div className="p-6">
                   {/* Status Counts */}
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="flex items-center gap-4 mb-6 flex-wrap">
                     <h3 className="text-lg font-semibold flex items-center gap-2">
                       <Edit3 className="w-5 h-5 text-violet-400" />
                       Modifications
@@ -788,8 +915,8 @@ export default function ATSResumeAnalyzer() {
                             }`}>
                               {index + 1}
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium">{mod.section}</span>
                                 {mod.status === 'pending' && (
                                   <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs">
@@ -800,9 +927,9 @@ export default function ATSResumeAnalyzer() {
                               <p className="text-sm text-slate-400 truncate">{mod.issue}</p>
                             </div>
                             {expandedMod === mod.id ? (
-                              <ChevronUp className="w-5 h-5 text-slate-400" />
+                              <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
                             ) : (
-                              <ChevronDown className="w-5 h-5 text-slate-400" />
+                              <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
                             )}
                           </div>
 
@@ -829,13 +956,15 @@ export default function ATSResumeAnalyzer() {
                                 </div>
 
                                 {/* Reason */}
-                                <p className="text-xs text-slate-500 italic">
-                                  💡 {mod.reason}
-                                </p>
+                                {mod.reason && (
+                                  <p className="text-xs text-slate-500 italic">
+                                    💡 {mod.reason}
+                                  </p>
+                                )}
 
                                 {/* Actions */}
                                 {mod.status === 'pending' && (
-                                  <div className="flex items-center gap-2 pt-2">
+                                  <div className="flex items-center gap-2 pt-2 flex-wrap">
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -918,7 +1047,7 @@ export default function ATSResumeAnalyzer() {
                           {results.matchedKeywords?.length || 0}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
                         {results.matchedKeywords?.map((kw, i) => (
                           <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">
                             {kw}
@@ -939,7 +1068,7 @@ export default function ATSResumeAnalyzer() {
                           {results.missingKeywords?.length || 0}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
                         {results.missingKeywords?.map((kw, i) => (
                           <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20">
                             {kw}
