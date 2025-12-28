@@ -1,11 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, ChevronDown, ChevronUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight } from 'lucide-react';
 
 // ============================================
-// AI-POWERED ANALYSIS WITH CLAUDE API
+// AI-POWERED ANALYSIS (API KEY STORED IN BACKEND)
 // ============================================
 
-const analyzeWithAI = async (resumeText, jdText, apiKey) => {
+const analyzeWithAI = async (resumeText, jdText) => {
   try {
     const response = await fetch('/api/analyze', {
       method: 'POST',
@@ -14,8 +14,7 @@ const analyzeWithAI = async (resumeText, jdText, apiKey) => {
       },
       body: JSON.stringify({
         resumeText,
-        jdText,
-        apiKey
+        jdText
       })
     });
 
@@ -33,7 +32,7 @@ const analyzeWithAI = async (resumeText, jdText, apiKey) => {
 };
 
 // ============================================
-// FALLBACK LOCAL ANALYSIS (No API Key)
+// FALLBACK LOCAL ANALYSIS
 // ============================================
 
 const extractKeywords = (text) => {
@@ -45,7 +44,7 @@ const extractKeywords = (text) => {
     .filter(word => word.length > 2 && !commonWords.has(word));
   
   const phrases = [];
-  const techTerms = ['machine learning', 'data science', 'project management', 'product management', 'user experience', 'user interface', 'full stack', 'front end', 'back end', 'cloud computing', 'data analysis', 'business analysis', 'agile methodology', 'scrum master', 'product owner', 'customer success', 'account management', 'sales operations', 'digital marketing', 'content marketing', 'social media', 'search engine', 'quality assurance', 'software development', 'web development', 'mobile development', 'cross functional', 'stakeholder management', 'sprint planning', 'product roadmap', 'go to market', 'key performance', 'return on investment', 'deep learning', 'natural language processing', 'computer vision', 'ci cd', 'continuous integration', 'continuous deployment', 'test driven', 'behavior driven', 'object oriented', 'functional programming', 'microservices architecture', 'restful api', 'graphql api', 'version control', 'code review'];
+  const techTerms = ['machine learning', 'data science', 'project management', 'product management', 'user experience', 'user interface', 'full stack', 'front end', 'back end', 'cloud computing', 'data analysis', 'business analysis', 'agile methodology', 'scrum master', 'product owner', 'customer success', 'account management', 'sales operations', 'digital marketing', 'content marketing', 'social media', 'search engine', 'quality assurance', 'software development', 'web development', 'mobile development', 'cross functional', 'stakeholder management', 'sprint planning', 'product roadmap', 'go to market', 'key performance', 'return on investment', 'deep learning', 'natural language processing', 'computer vision', 'ci cd', 'continuous integration', 'continuous deployment'];
   
   techTerms.forEach(term => {
     if (text.toLowerCase().includes(term)) {
@@ -113,7 +112,6 @@ const analyzeResumeLocally = (resumeText, jdText) => {
     (hardScore * 0.6) + (softScore * 0.3) + (generalScore * 0.1)
   ));
 
-  // Check formatting
   const hasEmail = /\b[\w.-]+@[\w.-]+\.\w+\b/.test(resumeText);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(resumeText);
   const hasLinkedIn = /linkedin/i.test(resumeText);
@@ -123,7 +121,6 @@ const analyzeResumeLocally = (resumeText, jdText) => {
   const wordCount = resumeText.split(/\s+/).length;
   const hasSections = /experience|education|skills|summary|objective|projects?|certifications?/i.test(resumeText);
 
-  // Generate recommendations
   const recommendations = [];
   
   if (overallScore < 50) {
@@ -263,14 +260,12 @@ const analyzeResumeLocally = (resumeText, jdText) => {
 export default function ATSResumeAnalyzer() {
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [useAI, setUseAI] = useState(false);
+  const [useAI, setUseAI] = useState(true); // AI enabled by default
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState('');
   const [copiedIndex, setCopiedIndex] = useState(null);
-  const [showApiInput, setShowApiInput] = useState(false);
 
   const handleAnalyze = useCallback(async () => {
     if (!resumeText.trim() || !jdText.trim()) return;
@@ -281,10 +276,15 @@ export default function ATSResumeAnalyzer() {
     try {
       let analysisResults;
       
-      if (useAI && apiKey) {
-        analysisResults = await analyzeWithAI(resumeText, jdText, apiKey);
+      if (useAI) {
+        try {
+          analysisResults = await analyzeWithAI(resumeText, jdText);
+        } catch (aiError) {
+          console.log('AI analysis failed, falling back to local:', aiError);
+          // Fallback to local analysis if AI fails
+          analysisResults = analyzeResumeLocally(resumeText, jdText);
+        }
       } else {
-        // Simulate processing time for local analysis
         await new Promise(resolve => setTimeout(resolve, 1500));
         analysisResults = analyzeResumeLocally(resumeText, jdText);
       }
@@ -297,7 +297,7 @@ export default function ATSResumeAnalyzer() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [resumeText, jdText, apiKey, useAI]);
+  }, [resumeText, jdText, useAI]);
 
   const copyToClipboard = (text, index) => {
     navigator.clipboard.writeText(text);
@@ -317,12 +317,6 @@ export default function ATSResumeAnalyzer() {
     return 'from-red-500 to-red-600';
   };
 
-  const getScoreRing = (score) => {
-    if (score >= 80) return 'text-emerald-500';
-    if (score >= 60) return 'text-amber-500';
-    return 'text-red-500';
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Header */}
@@ -340,11 +334,9 @@ export default function ATSResumeAnalyzer() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {useAI && (
-              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> AI Mode
-              </span>
-            )}
+            <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> AI Powered
+            </span>
             <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
               Free
             </span>
@@ -359,7 +351,7 @@ export default function ATSResumeAnalyzer() {
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
                 <Sparkles className="w-4 h-4" />
-                Now with AI-powered analysis
+                Powered by Claude AI
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Beat the ATS. Land More Interviews.
@@ -370,24 +362,21 @@ export default function ATSResumeAnalyzer() {
               </p>
             </div>
 
-            {/* AI Toggle */}
+            {/* Analysis Mode Toggle */}
             <div className="max-w-2xl mx-auto">
               <div className="bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
                       <Brain className="w-5 h-5 text-violet-400" />
                     </div>
                     <div>
                       <h3 className="font-semibold">AI-Powered Analysis</h3>
-                      <p className="text-sm text-slate-400">Get intelligent rewrite suggestions</p>
+                      <p className="text-sm text-slate-400">Get intelligent rewrite suggestions & detailed feedback</p>
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      setUseAI(!useAI);
-                      if (!useAI) setShowApiInput(true);
-                    }}
+                    onClick={() => setUseAI(!useAI)}
                     className={`relative w-14 h-7 rounded-full transition-colors ${
                       useAI ? 'bg-violet-500' : 'bg-slate-700'
                     }`}
@@ -397,21 +386,6 @@ export default function ATSResumeAnalyzer() {
                     }`} />
                   </button>
                 </div>
-                
-                {showApiInput && useAI && (
-                  <div className="mt-4 pt-4 border-t border-slate-700">
-                    <label className="block text-sm text-slate-400 mb-2">
-                      Claude API Key <span className="text-slate-600">(Get free key at console.anthropic.com)</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      placeholder="sk-ant-..."
-                      className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/50"
-                    />
-                  </div>
-                )}
               </div>
             </div>
 
@@ -906,9 +880,9 @@ Nice to have:
                       <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Sparkles className="w-8 h-8 text-violet-400" />
                       </div>
-                      <h5 className="font-semibold mb-2">Enable AI for Rewrite Suggestions</h5>
+                      <h5 className="font-semibold mb-2">AI Rewrites Available with AI Mode</h5>
                       <p className="text-slate-400 text-sm max-w-md mx-auto">
-                        Turn on AI mode and add your Claude API key to get intelligent rewrite suggestions for your resume bullet points.
+                        Make sure AI-Powered Analysis is enabled to get intelligent rewrite suggestions for your resume bullet points.
                       </p>
                     </div>
                   )}

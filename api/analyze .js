@@ -12,10 +12,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { resumeText, jdText, apiKey } = req.body;
+  const { resumeText, jdText } = req.body;
 
-  if (!resumeText || !jdText || !apiKey) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  // Use environment variable - user doesn't need to provide key
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({ error: 'API key not configured' });
+  }
+
+  if (!resumeText || !jdText) {
+    return res.status(400).json({ error: 'Missing resume or job description' });
   }
 
   const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description and provide detailed feedback.
@@ -26,7 +33,7 @@ ${resumeText}
 ## Job Description:
 ${jdText}
 
-## Provide your analysis in the following JSON format exactly (no markdown, just JSON):
+## Provide your analysis in the following JSON format exactly (no markdown, just pure JSON):
 {
   "overallScore": <number 0-100>,
   "summary": "<2-3 sentence overall assessment>",
@@ -64,22 +71,35 @@ ${jdText}
       "title": "<recommendation title>",
       "description": "<detailed actionable advice>",
       "example": "<specific example if applicable>"
+    },
+    {
+      "priority": "medium",
+      "title": "<recommendation title>",
+      "description": "<detailed actionable advice>",
+      "example": "<specific example if applicable>"
     }
   ],
   "bulletPointRewrites": [
     {
-      "original": "<original bullet point from resume>",
-      "improved": "<AI-improved version with metrics and keywords>",
+      "original": "<original bullet point from resume that could be improved>",
+      "improved": "<AI-improved version with metrics and keywords from JD>",
+      "explanation": "<why this is better>"
+    },
+    {
+      "original": "<another original bullet point>",
+      "improved": "<AI-improved version>",
       "explanation": "<why this is better>"
     }
   ],
   "atsCompatibility": {
     "score": <number 0-100>,
-    "issues": ["<issue1>"],
-    "suggestions": ["<suggestion1>"]
+    "issues": ["<issue1>", "<issue2>"],
+    "suggestions": ["<suggestion1>", "<suggestion2>"]
   },
-  "interviewTips": ["<tip based on JD>", "<tip based on resume gaps>"]
-}`;
+  "interviewTips": ["<tip based on JD>", "<tip based on resume gaps>", "<another tip>"]
+}
+
+Be specific, actionable, and reference actual content from the resume and JD. Focus on ATS optimization. Provide at least 2 bullet point rewrites. Return ONLY the JSON object, no other text.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
