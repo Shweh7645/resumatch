@@ -149,9 +149,48 @@ const extractPhrases = (text) => {
   return phrases;
 };
 
+// Clean text from LinkedIn/job board UI noise
+const cleanText = (text) => {
+  // Patterns to remove (LinkedIn, Indeed, Glassdoor UI elements)
+  const noisePatterns = [
+    /reposted \d+ (hours?|days?|weeks?|months?) ago/gi,
+    /posted \d+ (hours?|days?|weeks?|months?) ago/gi,
+    /\d+ (hours?|days?|weeks?|months?) ago/gi,
+    /\d+ people clicked apply/gi,
+    /\d+ applicants?/gi,
+    /show more/gi,
+    /show less/gi,
+    /see more/gi,
+    /see less/gi,
+    /easy apply/gi,
+    /apply now/gi,
+    /save job/gi,
+    /share this job/gi,
+    /report this job/gi,
+    /promoted/gi,
+    /sponsored/gi,
+    /logo$/gm,
+    /·/g,
+    /\|\|/g,
+    /www\.\S+/gi,
+    /https?:\/\/\S+/gi,
+  ];
+  
+  let cleaned = text;
+  for (const pattern of noisePatterns) {
+    cleaned = cleaned.replace(pattern, ' ');
+  }
+  
+  return cleaned;
+};
+
 // Main keyword extraction
 const extractKeywords = (text) => {
+  // Clean the text first
+  const cleanedText = cleanText(text);
+  
   const stopWords = new Set([
+    // Common English stopwords
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
     'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
     'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 
@@ -168,12 +207,45 @@ const extractKeywords = (text) => {
     'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based',
     'across', 'within', 'along', 'among', 'around', 'looking', 'seeking', 'required',
     'requirements', 'qualifications', 'preferred', 'plus', 'bonus', 'nice', 'ideal',
-    'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams'
+    'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams',
+    
+    // LinkedIn/Job Board UI noise
+    'logo', 'share', 'show', 'options', 'reposted', 'posted', 'hours', 'ago',
+    'people', 'clicked', 'apply', 'promoted', 'hirer', 'hiring', 'actively',
+    'applicants', 'applicant', 'easy', 'save', 'saved', 'report', 'hide',
+    'follow', 'following', 'followers', 'connections', 'connection', 'connect',
+    'message', 'messages', 'view', 'views', 'like', 'likes', 'comment', 'comments',
+    'reactions', 'reaction', 'celebrate', 'love', 'insightful', 'curious',
+    'repost', 'send', 'copy', 'link', 'embed', 'linkedin', 'indeed', 'glassdoor',
+    'naukri', 'monster', 'ziprecruiter', 'dice', 'careers', 'jobs',
+    
+    // Location noise (common but not skill-related)
+    'remote', 'hybrid', 'onsite', 'office', 'location', 'locations',
+    'bengaluru', 'bangalore', 'mumbai', 'delhi', 'hyderabad', 'chennai', 'pune',
+    'gurgaon', 'gurugram', 'noida', 'kolkata', 'ahmedabad', 'india', 'indian',
+    'karnataka', 'maharashtra', 'telangana', 'tamil', 'nadu', 'kerala',
+    'east', 'west', 'north', 'south', 'central',
+    'usa', 'america', 'american', 'california', 'texas', 'york', 'francisco',
+    'seattle', 'boston', 'chicago', 'austin', 'denver', 'atlanta',
+    'london', 'uk', 'england', 'europe', 'european', 'singapore', 'dubai',
+    
+    // Time-related noise
+    'today', 'yesterday', 'week', 'weeks', 'month', 'months', 'day', 'days',
+    'hour', 'minutes', 'recently', 'immediate', 'immediately', 'asap', 'urgent',
+    
+    // Generic job posting words
+    'description', 'overview', 'summary', 'details', 'information', 'info',
+    'apply', 'application', 'applications', 'submit', 'click', 'button',
+    'equal', 'opportunity', 'employer', 'eoe', 'diversity', 'inclusive',
+    'benefits', 'salary', 'compensation', 'package', 'perks', 'insurance',
+    'health', 'dental', 'vision', 'retirement', '401k', 'pto', 'vacation',
+    'candidate', 'candidates', 'talent', 'talented', 'individual', 'individuals',
+    'join', 'joining', 'grow', 'growth', 'career', 'opportunity', 'opportunities'
   ]);
   
-  const phrases = extractPhrases(text);
+  const phrases = extractPhrases(cleanedText);
   
-  const words = text
+  const words = cleanedText
     .toLowerCase()
     .replace(/[^a-zA-Z0-9\s\+\#\.]/g, ' ')
     .split(/\s+/)
