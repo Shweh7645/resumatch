@@ -6,100 +6,26 @@ import { Upload, FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, Trend
 // ============================================
 
 const analyzeWithAI = async (resumeText, jdText, apiKey) => {
-  const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description and provide detailed feedback.
-
-## Resume:
-${resumeText}
-
-## Job Description:
-${jdText}
-
-## Provide your analysis in the following JSON format exactly:
-{
-  "overallScore": <number 0-100>,
-  "summary": "<2-3 sentence overall assessment>",
-  "sections": {
-    "experience": {
-      "score": <number 0-100>,
-      "feedback": "<specific feedback>",
-      "strengths": ["<strength 1>", "<strength 2>"],
-      "improvements": ["<improvement 1>", "<improvement 2>"]
-    },
-    "skills": {
-      "score": <number 0-100>,
-      "matched": ["<skill1>", "<skill2>"],
-      "missing": ["<skill1>", "<skill2>"],
-      "feedback": "<specific feedback>"
-    },
-    "education": {
-      "score": <number 0-100>,
-      "feedback": "<specific feedback>"
-    },
-    "formatting": {
-      "score": <number 0-100>,
-      "issues": ["<issue1>", "<issue2>"],
-      "passed": ["<check1>", "<check2>"]
-    }
-  },
-  "keywordAnalysis": {
-    "matchedKeywords": ["<keyword1>", "<keyword2>"],
-    "missingKeywords": ["<keyword1>", "<keyword2>"],
-    "keywordDensity": "<assessment of keyword usage>"
-  },
-  "recommendations": [
-    {
-      "priority": "high",
-      "title": "<recommendation title>",
-      "description": "<detailed actionable advice>",
-      "example": "<specific example if applicable>"
-    }
-  ],
-  "bulletPointRewrites": [
-    {
-      "original": "<original bullet point from resume>",
-      "improved": "<AI-improved version with metrics and keywords>",
-      "explanation": "<why this is better>"
-    }
-  ],
-  "atsCompatibility": {
-    "score": <number 0-100>,
-    "issues": ["<issue1>"],
-    "suggestions": ["<suggestion1>"]
-  },
-  "interviewTips": ["<tip based on JD>", "<tip based on resume gaps>"]
-}
-
-Be specific, actionable, and reference actual content from the resume and JD. Focus on ATS optimization.`;
-
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        resumeText,
+        jdText,
+        apiKey
       })
     });
 
     const data = await response.json();
-    const content = data.content[0].text;
     
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+    if (data.error) {
+      throw new Error(data.error);
     }
-    throw new Error('Could not parse AI response');
+    
+    return data;
   } catch (error) {
     console.error('AI Analysis Error:', error);
     throw error;
