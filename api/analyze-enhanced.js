@@ -1,3 +1,6 @@
+// Advanced ATS Analysis API with Vector Embeddings
+// Uses OpenAI for semantic matching + Claude for insights
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,17 +16,66 @@ export default async function handler(req, res) {
   }
 
   const { resumeText, jdText, localResults } = req.body;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey) {
-    return res.status(500).json({ error: 'API key not configured' });
+  if (!anthropicKey) {
+    return res.status(500).json({ error: 'Anthropic API key not configured' });
   }
 
   if (!resumeText || !jdText) {
     return res.status(400).json({ error: 'Missing resume or job description' });
   }
 
-  const prompt = `You are an expert ATS (Applicant Tracking System) analyst and career coach. Analyze this resume against the job description.
+  // ============================================
+  // PHASE 1: VECTOR EMBEDDINGS (Semantic Match)
+  // ============================================
+  
+  let semanticScore = null;
+  let embeddingError = null;
+
+  if (openaiKey) {
+    try {
+      // Get embeddings for both texts
+      const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openaiKey}`
+        },
+        body: JSON.stringify({
+          model: 'text-embedding-3-small',
+          input: [
+            resumeText.slice(0, 8000), // Limit to 8k chars
+            jdText.slice(0, 8000)
+          ]
+        })
+      });
+
+      const embeddingData = await embeddingResponse.json();
+
+      if (embeddingData.data && embeddingData.data.length === 2) {
+        const resumeVector = embeddingData.data[0].embedding;
+        const jdVector = embeddingData.data[1].embedding;
+        
+        // Calculate Cosine Similarity
+        semanticScore = cosineSimilarity(resumeVector, jdVector);
+      }
+    } catch (err) {
+      console.error('Embedding error:', err);
+      embeddingError = err.message;
+    }
+  }
+
+  // ============================================
+  // PHASE 2: AI ANALYSIS (Claude)
+  // ============================================
+
+  const semanticContext = semanticScore !== null 
+    ? `\n## Semantic Similarity Score: ${Math.round(semanticScore * 100)}%\nThis measures how conceptually similar the resume is to the job description using vector embeddings.`
+    : '';
+
+  const prompt = `You are an expert ATS (Applicant Tracking System) analyst. Analyze this resume against the job description.
 
 ## Resume:
 ${resumeText}
@@ -31,67 +83,85 @@ ${resumeText}
 ## Job Description:
 ${jdText}
 
-## Local Analysis Results:
-- Match Score: ${localResults?.overallScore || 'N/A'}%
-- Matched Keywords: ${localResults?.matchedKeywords?.join(', ') || 'N/A'}
-- Missing Keywords: ${localResults?.missingKeywords?.join(', ') || 'N/A'}
+## Local Keyword Analysis:
+- Keyword Match Score: ${localResults?.overallScore || 'N/A'}%
+- Matched Keywords: ${localResults?.matchedKeywords?.slice(0, 20).join(', ') || 'N/A'}
+- Missing Keywords: ${localResults?.missingKeywords?.slice(0, 15).join(', ') || 'N/A'}
+${semanticContext}
 
 ## Your Task:
-Provide a comprehensive analysis with:
-1. Executive Summary - A detailed 4-6 sentence strategic assessment
-2. Section-by-section modification suggestions (10-15 specific changes)
+Provide comprehensive analysis with:
+1. Executive Summary (4-6 sentences covering alignment, strengths, gaps, and strategic recommendations)
+2. 10-15 specific modification suggestions organized by resume section
 
-## Return ONLY this JSON format (no markdown, no backticks):
+## Return ONLY this JSON (no markdown):
 {
-  "executiveSummary": "<Write a 4-6 sentence strategic assessment. Cover: overall alignment, key strengths, major gaps, specific concerns (like missing qualifications), and strategic recommendations for repositioning. Be specific and reference actual content from both documents. Example tone: 'Your resume demonstrates strong X with relevant experience in Y and Z. The [Company] experience aligns well with [JD requirement]. However, the resume needs strategic repositioning to emphasize [gap areas]. Major gaps include: [specific missing items]. The resume reads more [current focus]-heavy than [desired focus]. Restructure to lead with [recommended focus].'>",
+  "executiveSummary": "<4-6 sentence strategic assessment. Be specific about: overall alignment, key strengths that match JD, major gaps, missing qualifications, and how to reposition the resume. Reference specific content from both documents.>",
+  
+  "semanticInsights": {
+    "strongMatches": ["<concept in resume that semantically matches JD even if different words>"],
+    "hiddenGaps": ["<JD requirement not obviously missing but semantically absent>"],
+    "repositioningTips": ["<how to reframe existing experience to better match JD language>"]
+  },
   
   "modifications": [
     {
       "section": "Professional Summary",
-      "issue": "<One sentence describing what's wrong or missing>",
-      "original": "<Quote the actual text from resume if applicable, or null>",
-      "suggestion": "<The improved/rewritten text>",
-      "reason": "<Why this change helps - reference JD keywords or requirements>"
+      "issue": "<specific problem>",
+      "original": "<quote from resume or null>",
+      "suggestion": "<improved text with JD keywords>",
+      "reason": "<why this helps, reference JD>"
     },
     {
-      "section": "Experience - [Company Name]",
-      "issue": "<Issue description>",
-      "original": "<Original bullet point from resume>",
-      "suggestion": "<Improved version with JD keywords>",
-      "reason": "<Explanation referencing JD language>"
+      "section": "Experience - [Company]",
+      "issue": "<specific problem>",
+      "original": "<original bullet point>",
+      "suggestion": "<improved version>",
+      "reason": "<explanation>"
     }
-  ]
+  ],
+  
+  "sectionScores": {
+    "summary": { "score": <0-100>, "feedback": "<brief feedback>" },
+    "experience": { "score": <0-100>, "feedback": "<brief feedback>" },
+    "skills": { "score": <0-100>, "feedback": "<brief feedback>" },
+    "education": { "score": <0-100>, "feedback": "<brief feedback>" }
+  },
+  
+  "skillsAnalysis": {
+    "hardSkills": {
+      "matched": ["<technical skill found>"],
+      "missing": ["<critical technical skill missing>"]
+    },
+    "softSkills": {
+      "matched": ["<soft skill demonstrated>"],
+      "missing": ["<soft skill from JD not shown>"]
+    }
+  },
+  
+  "atsWarnings": ["<any ATS compatibility issues: formatting, file type, headers, etc.>"],
+  
+  "interviewPrep": ["<likely interview question based on JD>", "<topic to prepare>"]
 }
 
-## Guidelines for modifications:
-- Include 10-15 modifications covering different resume sections
-- Sections should be: Professional Summary, Experience - [Company], Skills & Certifications, Education
-- Each modification should incorporate specific keywords from the JD
-- Original field should quote actual resume text when suggesting rewrites
-- Suggestions should be complete, ready-to-use replacements
-- Reasons should reference specific JD requirements or keywords
-- Focus on: missing keywords, weak action verbs, lack of metrics, missing JD terminology
-- Be specific - don't be generic like "add more detail"
-
-Return ONLY the JSON object, nothing else.`;
+Important:
+- Provide 10-15 modifications covering different sections
+- Be specific - quote actual resume text in "original" field
+- Make suggestions complete and ready to use
+- Reference JD requirements in your reasons`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': anthropicKey,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 4096,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
+        messages: [{ role: 'user', content: prompt }]
       })
     });
 
@@ -104,15 +174,21 @@ Return ONLY the JSON object, nothing else.`;
 
     const content = data.content[0].text;
     
-    // Extract JSON from response
+    // Extract JSON
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
         const parsed = JSON.parse(jsonMatch[0]);
-        return res.status(200).json(parsed);
+        
+        // Add semantic score to response
+        return res.status(200).json({
+          ...parsed,
+          semanticScore: semanticScore !== null ? Math.round(semanticScore * 100) : null,
+          embeddingEnabled: openaiKey ? true : false,
+          embeddingError: embeddingError
+        });
       } catch (parseError) {
         console.error('JSON Parse Error:', parseError);
-        console.error('Content:', content);
         return res.status(500).json({ error: 'Failed to parse AI response' });
       }
     }
@@ -122,4 +198,33 @@ Return ONLY the JSON object, nothing else.`;
     console.error('API Error:', error);
     return res.status(500).json({ error: error.message });
   }
+}
+
+// ============================================
+// COSINE SIMILARITY FUNCTION
+// ============================================
+
+function cosineSimilarity(vecA, vecB) {
+  if (!vecA || !vecB || vecA.length !== vecB.length) {
+    return null;
+  }
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  normA = Math.sqrt(normA);
+  normB = Math.sqrt(normB);
+  
+  if (normA === 0 || normB === 0) {
+    return 0;
+  }
+  
+  return dotProduct / (normA * normB);
 }

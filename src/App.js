@@ -746,16 +746,16 @@ export default function ATSResumeAnalyzer() {
           /* RESULTS SECTION */
           <div className="space-y-6">
             {/* Score Cards Row */}
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-3 gap-4">
               {/* Match Score */}
               <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-slate-400 text-sm mb-1">Match Score</p>
-                    <p className="text-xs text-slate-500">Overall compatibility</p>
+                    <p className="text-slate-400 text-sm mb-1">Keyword Match</p>
+                    <p className="text-xs text-slate-500">Hard skills alignment</p>
                   </div>
                   <div className="text-right">
-                    <span className={`text-5xl font-bold ${getScoreColor(results.overallScore)}`}>
+                    <span className={`text-4xl font-bold ${getScoreColor(results.overallScore)}`}>
                       {results.overallScore}%
                     </span>
                   </div>
@@ -768,15 +768,60 @@ export default function ATSResumeAnalyzer() {
                 </div>
               </div>
 
+              {/* Semantic Score (NEW) */}
+              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 relative overflow-hidden">
+                {results.semanticScore !== null ? (
+                  <>
+                    <div className="absolute top-2 right-2">
+                      <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs font-medium flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" /> Vector AI
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
+                        <p className="text-xs text-slate-500">Cosine similarity</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-4xl font-bold ${getScoreColor(results.semanticScore)}`}>
+                          {results.semanticScore}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all duration-500`} 
+                        style={{ width: `${results.semanticScore}%` }} 
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
+                        <p className="text-xs text-slate-500">Vector embeddings</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold text-slate-600">--</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 text-xs text-slate-500">
+                      Add OpenAI API key for semantic analysis
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* ATS Readability */}
               <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-slate-400 text-sm mb-1">ATS Readability</p>
-                    <p className="text-xs text-slate-500">Based on formatting</p>
+                    <p className="text-xs text-slate-500">Format score</p>
                   </div>
                   <div className="text-right">
-                    <span className={`text-5xl font-bold ${getScoreColor(results.atsScore)}`}>
+                    <span className={`text-4xl font-bold ${getScoreColor(results.atsScore)}`}>
                       {results.atsScore}%
                     </span>
                   </div>
@@ -795,6 +840,7 @@ export default function ATSResumeAnalyzer() {
               {[
                 { id: 'summary', label: 'Executive Summary', icon: Award },
                 { id: 'modifications', label: `Modifications (${modifications.length})`, icon: Edit3 },
+                { id: 'semantic', label: 'Semantic Insights', icon: Brain },
                 { id: 'keywords', label: 'Keyword Analysis', icon: Target },
               ].map((tab) => (
                 <button
@@ -1024,6 +1070,145 @@ export default function ATSResumeAnalyzer() {
                       <p className="text-xs text-slate-500 text-center mt-2">
                         Accept at least one suggestion to generate your updated resume
                       </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* SEMANTIC INSIGHTS TAB */}
+              {activeTab === 'semantic' && (
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                    <Brain className="w-5 h-5 text-violet-400" />
+                    Semantic Analysis
+                    {results.semanticScore !== null && (
+                      <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs font-medium">
+                        Vector Embeddings Enabled
+                      </span>
+                    )}
+                  </h3>
+
+                  {results.semanticScore !== null ? (
+                    <div className="space-y-6">
+                      {/* Semantic Score Explanation */}
+                      <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl p-5 border border-violet-500/20">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-violet-400">Cosine Similarity Score</h4>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Measures conceptual alignment using 1536-dimensional vectors
+                            </p>
+                          </div>
+                          <span className={`text-3xl font-bold ${getScoreColor(results.semanticScore)}`}>
+                            {results.semanticScore}%
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-400">
+                          {results.semanticScore >= 80 
+                            ? "Excellent semantic alignment! Your resume's language and concepts closely match the job description."
+                            : results.semanticScore >= 60
+                            ? "Good conceptual match. Some areas could be reworded to better align with JD terminology."
+                            : "Moderate semantic alignment. Consider restructuring your resume to use more JD-specific language."}
+                        </p>
+                      </div>
+
+                      {/* Semantic Insights from AI */}
+                      {results.semanticInsights && (
+                        <>
+                          {/* Strong Matches */}
+                          {results.semanticInsights.strongMatches?.length > 0 && (
+                            <div className="bg-emerald-500/5 rounded-xl p-5 border border-emerald-500/20">
+                              <h4 className="font-medium text-emerald-400 mb-3 flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4" />
+                                Semantic Matches Found
+                              </h4>
+                              <p className="text-xs text-slate-500 mb-3">
+                                Concepts that match even with different wording
+                              </p>
+                              <ul className="space-y-2">
+                                {results.semanticInsights.strongMatches.map((match, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                                    <span className="text-emerald-400 mt-0.5">✓</span>
+                                    {match}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Hidden Gaps */}
+                          {results.semanticInsights.hiddenGaps?.length > 0 && (
+                            <div className="bg-amber-500/5 rounded-xl p-5 border border-amber-500/20">
+                              <h4 className="font-medium text-amber-400 mb-3 flex items-center gap-2">
+                                <AlertTriangle className="w-4 h-4" />
+                                Hidden Gaps Detected
+                              </h4>
+                              <p className="text-xs text-slate-500 mb-3">
+                                Requirements not obviously missing but semantically absent
+                              </p>
+                              <ul className="space-y-2">
+                                {results.semanticInsights.hiddenGaps.map((gap, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                                    <span className="text-amber-400 mt-0.5">!</span>
+                                    {gap}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Repositioning Tips */}
+                          {results.semanticInsights.repositioningTips?.length > 0 && (
+                            <div className="bg-blue-500/5 rounded-xl p-5 border border-blue-500/20">
+                              <h4 className="font-medium text-blue-400 mb-3 flex items-center gap-2">
+                                <Lightbulb className="w-4 h-4" />
+                                Repositioning Tips
+                              </h4>
+                              <p className="text-xs text-slate-500 mb-3">
+                                How to reframe existing experience for better alignment
+                              </p>
+                              <ul className="space-y-2">
+                                {results.semanticInsights.repositioningTips.map((tip, i) => (
+                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                                    <span className="text-blue-400 mt-0.5">→</span>
+                                    {tip}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* How it works */}
+                      <div className="bg-slate-800/50 rounded-xl p-4">
+                        <h5 className="font-medium text-slate-400 mb-2 text-sm">How Semantic Analysis Works</h5>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Your resume and the job description are converted into 1536-dimensional vectors using OpenAI embeddings. 
+                          Cosine similarity measures the angle between these vectors — a score of 100% means perfect conceptual alignment, 
+                          while 0% means completely unrelated content. This catches matches like "Client Services" ≈ "Customer Support" 
+                          that keyword matching would miss.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Brain className="w-8 h-8 text-violet-400" />
+                      </div>
+                      <h5 className="font-semibold mb-2">Semantic Analysis Not Enabled</h5>
+                      <p className="text-slate-400 text-sm max-w-md mx-auto mb-4">
+                        Add an OpenAI API key to enable vector embeddings for semantic matching.
+                      </p>
+                      <div className="bg-slate-800/50 rounded-lg p-4 max-w-md mx-auto text-left">
+                        <p className="text-xs text-slate-500 mb-2">To enable:</p>
+                        <ol className="text-xs text-slate-400 space-y-1">
+                          <li>1. Get API key from platform.openai.com</li>
+                          <li>2. Add to Vercel: Settings → Environment Variables</li>
+                          <li>3. Key: <code className="bg-slate-700 px-1 rounded">OPENAI_API_KEY</code></li>
+                          <li>4. Redeploy your project</li>
+                        </ol>
+                      </div>
                     </div>
                   )}
                 </div>
