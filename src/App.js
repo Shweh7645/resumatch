@@ -1,143 +1,327 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, TrendingUp, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, FileSearch, Lightbulb, ArrowRight, Cpu } from 'lucide-react';
 
 // ============================================
-// AI-POWERED ANALYSIS (API KEY STORED IN BACKEND)
+// SYNONYM DICTIONARY FOR IMPROVED MATCHING
 // ============================================
 
-const analyzeWithAI = async (resumeText, jdText) => {
-  try {
-    const response = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        resumeText,
-        jdText
-      })
-    });
+const synonyms = {
+  // Programming Languages
+  'javascript': ['js', 'es6', 'es2015', 'ecmascript', 'node.js', 'nodejs', 'node'],
+  'typescript': ['ts'],
+  'python': ['py', 'python3', 'python2'],
+  'golang': ['go', 'go lang'],
+  'csharp': ['c#', 'c-sharp', 'dotnet', '.net', 'dot net'],
+  'cplusplus': ['c++', 'cpp'],
+  
+  // Frameworks & Libraries
+  'react': ['reactjs', 'react.js', 'react native', 'reactnative'],
+  'angular': ['angularjs', 'angular.js', 'angular2', 'angular4'],
+  'vue': ['vuejs', 'vue.js', 'vue3'],
+  'nextjs': ['next.js', 'next'],
+  'express': ['expressjs', 'express.js'],
+  'django': ['python django'],
+  'flask': ['python flask'],
+  'spring': ['spring boot', 'springboot'],
+  
+  // Cloud & DevOps
+  'aws': ['amazon web services', 'amazon cloud', 'ec2', 's3', 'lambda', 'amazon'],
+  'gcp': ['google cloud', 'google cloud platform', 'gce'],
+  'azure': ['microsoft azure', 'ms azure'],
+  'kubernetes': ['k8s', 'kube'],
+  'docker': ['containerization', 'containers', 'dockerfile'],
+  'cicd': ['ci/cd', 'ci-cd', 'continuous integration', 'continuous deployment', 'jenkins', 'gitlab ci', 'github actions'],
+  'terraform': ['infrastructure as code', 'iac'],
+  
+  // Databases
+  'postgresql': ['postgres', 'psql', 'postgre'],
+  'mongodb': ['mongo', 'nosql'],
+  'mysql': ['my sql', 'mariadb'],
+  'elasticsearch': ['elastic', 'elk', 'elastic search'],
+  'dynamodb': ['dynamo', 'dynamo db'],
+  'redis': ['caching', 'in-memory'],
+  
+  // Data & ML
+  'machinelearning': ['machine learning', 'ml', 'deep learning', 'dl', 'ai', 'artificial intelligence'],
+  'datascience': ['data science', 'data scientist', 'data analytics', 'analytics'],
+  'dataengineering': ['data engineering', 'data engineer', 'etl', 'data pipeline', 'data pipelines'],
+  'nlp': ['natural language processing', 'natural language', 'text processing'],
+  'computervision': ['computer vision', 'image processing', 'cv'],
+  
+  // Methodologies
+  'agile': ['scrum', 'kanban', 'sprint', 'sprints', 'agile methodology'],
+  'devops': ['dev ops', 'sre', 'site reliability', 'platform engineering'],
+  'productmanagement': ['product management', 'product manager', 'pm', 'product owner', 'po'],
+  'projectmanagement': ['project management', 'project manager', 'pmp'],
+  
+  // Soft Skills - Action verbs and their variations
+  'leadership': ['led', 'leading', 'leader', 'manage', 'managed', 'managing', 'oversaw', 'supervised', 'directed', 'head', 'headed', 'spearheaded'],
+  'communication': ['communicate', 'communicated', 'communicating', 'verbal', 'written', 'presentation', 'presenting', 'presented'],
+  'collaboration': ['collaborate', 'collaborated', 'collaborating', 'team player', 'teamwork', 'cross-functional', 'cross functional', 'partnered', 'partnering'],
+  'problemsolving': ['problem solving', 'problem-solving', 'troubleshoot', 'troubleshooting', 'debug', 'debugging', 'resolved', 'resolving', 'solving'],
+  'analytical': ['analysis', 'analyze', 'analyzed', 'analyzing', 'analytics', 'analytical skills', 'data-driven', 'data driven'],
+  'strategic': ['strategy', 'strategic thinking', 'strategize', 'strategic planning'],
+  
+  // Common role terms
+  'fullstack': ['full stack', 'full-stack', 'frontend and backend', 'front and back end'],
+  'frontend': ['front end', 'front-end', 'ui', 'user interface', 'client side', 'client-side'],
+  'backend': ['back end', 'back-end', 'server side', 'server-side', 'api development'],
+  'senior': ['sr', 'sr.', 'lead', 'principal', 'staff'],
+  'junior': ['jr', 'jr.', 'entry level', 'entry-level', 'associate'],
+  
+  // Tools
+  'jira': ['atlassian', 'confluence', 'trello'],
+  'figma': ['sketch', 'adobe xd', 'invision', 'ui design'],
+  'git': ['github', 'gitlab', 'bitbucket', 'version control', 'source control'],
+  'tableau': ['power bi', 'looker', 'data visualization', 'dashboards'],
+  'excel': ['spreadsheets', 'google sheets', 'sheets'],
+  
+  // API & Integration
+  'api': ['apis', 'rest', 'restful', 'rest api', 'graphql', 'endpoint', 'endpoints', 'web services', 'microservices'],
+  'testing': ['test', 'tests', 'qa', 'quality assurance', 'unit testing', 'integration testing', 'e2e', 'end to end', 'automated testing', 'test automation']
+};
 
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error);
+// Build reverse lookup map
+const buildSynonymMap = () => {
+  const map = new Map();
+  for (const [canonical, variations] of Object.entries(synonyms)) {
+    map.set(canonical.toLowerCase(), canonical);
+    for (const variation of variations) {
+      map.set(variation.toLowerCase(), canonical);
     }
-    
-    return data;
-  } catch (error) {
-    console.error('AI Analysis Error:', error);
-    throw error;
   }
+  return map;
 };
 
+const synonymMap = buildSynonymMap();
+
 // ============================================
-// FALLBACK LOCAL ANALYSIS
+// IMPROVED LOCAL ANALYSIS FUNCTIONS
 // ============================================
 
-const extractKeywords = (text) => {
-  const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any', 'well', 'years', 'year', 'experience', 'work', 'working', 'team', 'ability', 'strong', 'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities', 'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based', 'across', 'within', 'along', 'among', 'around', 'behind', 'beyond']);
-  
-  const words = text.toLowerCase()
-    .replace(/[^a-zA-Z0-9\s\+\#\.\-]/g, ' ')
-    .split(/\s+/)
-    .filter(word => word.length > 2 && !commonWords.has(word));
-  
+// Normalize keyword to canonical form
+const normalizeKeyword = (keyword) => {
+  const lower = keyword.toLowerCase().trim();
+  return synonymMap.get(lower) || lower;
+};
+
+// Simple stemming
+const stem = (word) => {
+  let result = word.toLowerCase();
+  const suffixes = ['ization', 'isation', 'ational', 'fulness', 'ousness', 'iveness', 'ement', 'ment', 'ence', 'ance', 'able', 'ible', 'ness', 'less', 'tion', 'sion', 'ally', 'ful', 'ous', 'ive', 'ing', 'ied', 'ies', 'ed', 'er', 'es', 'ly', 's'];
+  for (const suffix of suffixes) {
+    if (result.endsWith(suffix) && result.length > suffix.length + 2) {
+      result = result.slice(0, -suffix.length);
+      break;
+    }
+  }
+  return result;
+};
+
+// Extract multi-word phrases
+const extractPhrases = (text) => {
   const phrases = [];
-  const techTerms = ['machine learning', 'data science', 'project management', 'product management', 'user experience', 'user interface', 'full stack', 'front end', 'back end', 'cloud computing', 'data analysis', 'business analysis', 'agile methodology', 'scrum master', 'product owner', 'customer success', 'account management', 'sales operations', 'digital marketing', 'content marketing', 'social media', 'search engine', 'quality assurance', 'software development', 'web development', 'mobile development', 'cross functional', 'stakeholder management', 'sprint planning', 'product roadmap', 'go to market', 'key performance', 'return on investment', 'deep learning', 'natural language processing', 'computer vision', 'ci cd', 'continuous integration', 'continuous deployment'];
+  const importantPhrases = [
+    'machine learning', 'deep learning', 'artificial intelligence', 'data science', 
+    'data engineering', 'data analysis', 'data analytics', 'product management', 
+    'project management', 'program management', 'user experience', 'user interface', 
+    'user research', 'full stack', 'front end', 'back end', 'cloud computing', 
+    'distributed systems', 'microservices', 'agile methodology', 'scrum master', 
+    'product owner', 'continuous integration', 'continuous deployment', 
+    'test driven development', 'object oriented', 'functional programming',
+    'cross functional', 'stakeholder management', 'a/b testing', 'ab testing',
+    'natural language processing', 'computer vision', 'sprint planning', 
+    'product roadmap', 'go to market', 'business intelligence', 'business analysis',
+    'customer success', 'customer experience', 'supply chain', 'financial analysis',
+    'react native', 'node.js', 'next.js', 'vue.js', 'amazon web services', 
+    'google cloud', 'microsoft azure', 'sql server', 'power bi', 'google analytics',
+    'version control', 'code review', 'pull request', 'unit testing', 
+    'integration testing', 'end to end', 'rest api', 'graphql api', 'api development',
+    'software development', 'web development', 'mobile development', 'app development'
+  ];
   
-  techTerms.forEach(term => {
-    if (text.toLowerCase().includes(term)) {
-      phrases.push(term);
+  const lowerText = text.toLowerCase();
+  for (const phrase of importantPhrases) {
+    if (lowerText.includes(phrase)) {
+      phrases.push(phrase);
     }
-  });
-  
-  const wordFreq = {};
-  words.forEach(word => {
-    wordFreq[word] = (wordFreq[word] || 0) + 1;
-  });
-  
-  return { words: Object.keys(wordFreq), phrases, frequency: wordFreq };
+  }
+  return phrases;
 };
 
-const categorizeSkills = (keywords) => {
-  const hardSkills = ['python', 'javascript', 'typescript', 'react', 'node', 'nodejs', 'sql', 'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'java', 'c++', 'c#', 'go', 'golang', 'rust', 'ruby', 'php', 'swift', 'kotlin', 'scala', 'excel', 'tableau', 'power bi', 'looker', 'jira', 'confluence', 'asana', 'trello', 'figma', 'sketch', 'adobe', 'photoshop', 'illustrator', 'salesforce', 'hubspot', 'marketo', 'google analytics', 'mixpanel', 'amplitude', 'segment', 'seo', 'sem', 'html', 'css', 'sass', 'less', 'git', 'github', 'gitlab', 'bitbucket', 'api', 'rest', 'graphql', 'mongodb', 'postgresql', 'mysql', 'redis', 'elasticsearch', 'kafka', 'rabbitmq', 'spark', 'hadoop', 'airflow', 'dbt', 'snowflake', 'databricks', 'tensorflow', 'pytorch', 'keras', 'scikit', 'pandas', 'numpy', 'scipy', 'matplotlib', 'r', 'stata', 'spss', 'matlab', 'sas', 'vue', 'angular', 'svelte', 'nextjs', 'gatsby', 'flutter', 'react native', 'ionic', 'electron', 'jenkins', 'circleci', 'travis', 'terraform', 'ansible', 'puppet', 'chef', 'linux', 'unix', 'bash', 'powershell', 'postman', 'swagger', 'selenium', 'cypress', 'jest', 'mocha', 'pytest', 'junit', 'webpack', 'vite', 'rollup', 'npm', 'yarn', 'pnpm', 'agile', 'scrum', 'kanban', 'waterfall', 'lean', 'devops', 'sre', 'cicd', 'mlops', 'dataops', 'microservices', 'serverless', 'lambda', 'blockchain', 'solidity', 'web3', 'machine learning', 'deep learning', 'nlp', 'computer vision', 'data science', 'data engineering', 'data analytics', 'etl', 'elt', 'data warehouse', 'data lake', 'bi', 'reporting', 'dashboard', 'prds', 'user stories', 'acceptance criteria', 'roadmap', 'okrs', 'kpis', 'wireframing', 'prototyping', 'a/b testing', 'experimentation', 'sql server', 'oracle', 'sap', 'erp', 'crm'];
+// Main keyword extraction
+const extractKeywords = (text) => {
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
+    'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
+    'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 
+    'must', 'shall', 'can', 'need', 'this', 'that', 'these', 'those', 'i', 'you', 
+    'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'whom', 'whose', 
+    'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 
+    'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
+    'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 
+    'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 
+    'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 
+    'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any',
+    'well', 'work', 'working', 'experience', 'year', 'years', 'ability', 'strong',
+    'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities',
+    'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based',
+    'across', 'within', 'along', 'among', 'around', 'looking', 'seeking', 'required',
+    'requirements', 'qualifications', 'preferred', 'plus', 'bonus', 'nice', 'ideal',
+    'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams'
+  ]);
   
-  const softSkills = ['leadership', 'communication', 'collaboration', 'teamwork', 'problem solving', 'analytical', 'creative', 'creativity', 'strategic', 'innovative', 'innovation', 'adaptable', 'adaptability', 'flexible', 'flexibility', 'organized', 'organization', 'detail oriented', 'attention to detail', 'self motivated', 'proactive', 'initiative', 'reliable', 'dependable', 'interpersonal', 'negotiation', 'presentation', 'public speaking', 'mentoring', 'coaching', 'training', 'decision making', 'time management', 'prioritization', 'multitasking', 'customer focused', 'customer centric', 'results driven', 'results oriented', 'goal oriented', 'critical thinking', 'emotional intelligence', 'empathy', 'conflict resolution', 'stakeholder', 'cross functional', 'influence', 'persuasion', 'written communication', 'verbal communication'];
+  const phrases = extractPhrases(text);
   
-  const found = { hard: [], soft: [] };
-  keywords.forEach(kw => {
-    const kwLower = kw.toLowerCase();
-    if (hardSkills.some(skill => kwLower.includes(skill) || skill.includes(kwLower))) {
-      found.hard.push(kw);
-    }
-    if (softSkills.some(skill => kwLower.includes(skill) || skill.includes(kwLower))) {
-      found.soft.push(kw);
-    }
-  });
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-zA-Z0-9\s\+\#\.]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 2 && !stopWords.has(word));
   
-  return found;
+  const normalizedWords = new Set();
+  
+  for (const word of words) {
+    const normalized = normalizeKeyword(word);
+    normalizedWords.add(normalized);
+  }
+  
+  for (const phrase of phrases) {
+    const normalized = normalizeKeyword(phrase);
+    normalizedWords.add(normalized);
+  }
+  
+  return Array.from(normalizedWords);
 };
 
-const analyzeResumeLocally = (resumeText, jdText) => {
-  const resumeData = extractKeywords(resumeText);
-  const jdData = extractKeywords(jdText);
+// Categorize skill type
+const categorizeSkill = (keyword) => {
+  const hardSkillPatterns = [
+    /python|java|javascript|typescript|golang|ruby|php|swift|kotlin|scala|rust|c\+\+|csharp/i,
+    /react|angular|vue|django|flask|spring|express|next|rails|laravel/i,
+    /sql|postgres|mysql|mongodb|redis|elasticsearch|dynamodb|cassandra|oracle/i,
+    /aws|azure|gcp|cloud|kubernetes|docker|terraform|ansible|jenkins/i,
+    /git|jira|confluence|figma|sketch|tableau|powerbi|excel/i,
+    /pandas|numpy|spark|hadoop|kafka|airflow|dbt|snowflake|databricks/i,
+    /tensorflow|pytorch|keras|scikit|machinelearning|datascience|nlp|computervision/i,
+    /api|rest|graphql|microservices|cicd|devops|agile|scrum|kanban/i,
+    /html|css|sass|webpack|npm|yarn|testing|selenium|cypress/i,
+    /linux|unix|bash|powershell|networking|security|encryption/i,
+    /fullstack|frontend|backend|dataengineering|productmanagement/i
+  ];
   
-  const resumeWords = new Set([...resumeData.words, ...resumeData.phrases].map(w => w.toLowerCase()));
-  const jdWords = [...new Set([...jdData.words, ...jdData.phrases])];
+  const softSkillPatterns = [
+    /leadership|communication|collaboration|teamwork|problemsolving/i,
+    /analytical|creative|strategic|innovative|adaptable|flexible/i,
+    /organized|detail|motivated|proactive|reliable|dependable/i,
+    /interpersonal|negotiation|presentation|mentoring|coaching/i,
+    /decision|time.management|prioritization|critical|thinking/i,
+    /customer|results|goal|stakeholder|influence|persuasion|empathy/i
+  ];
   
+  const keywordLower = keyword.toLowerCase();
+  
+  for (const pattern of hardSkillPatterns) {
+    if (pattern.test(keywordLower)) return 'hard';
+  }
+  
+  for (const pattern of softSkillPatterns) {
+    if (pattern.test(keywordLower)) return 'soft';
+  }
+  
+  return 'general';
+};
+
+// Match keywords with improved logic
+const matchKeywords = (resumeKeywords, jdKeywords) => {
   const matched = [];
   const missing = [];
   
-  jdWords.forEach(word => {
-    const wordLower = word.toLowerCase();
-    if (resumeWords.has(wordLower) || [...resumeWords].some(rw => rw.includes(wordLower) || wordLower.includes(rw))) {
-      matched.push(word);
-    } else {
-      missing.push(word);
+  const resumeSet = new Set(resumeKeywords.map(k => normalizeKeyword(k)));
+  const resumeStemmed = new Set(resumeKeywords.map(k => stem(normalizeKeyword(k))));
+  
+  for (const jdKeyword of jdKeywords) {
+    const normalizedJD = normalizeKeyword(jdKeyword);
+    const stemmedJD = stem(normalizedJD);
+    
+    // Exact match after normalization
+    if (resumeSet.has(normalizedJD)) {
+      matched.push({ keyword: jdKeyword, matchType: 'exact' });
+      continue;
     }
-  });
+    
+    // Stemmed match
+    if (resumeStemmed.has(stemmedJD)) {
+      matched.push({ keyword: jdKeyword, matchType: 'stemmed' });
+      continue;
+    }
+    
+    // Partial/contains match
+    let found = false;
+    for (const resumeKeyword of resumeSet) {
+      if (resumeKeyword.includes(normalizedJD) || normalizedJD.includes(resumeKeyword)) {
+        matched.push({ keyword: jdKeyword, matchType: 'partial' });
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) {
+      missing.push(jdKeyword);
+    }
+  }
   
-  const categorizedMissing = categorizeSkills(missing);
-  const categorizedMatched = categorizeSkills(matched);
+  return { matched, missing };
+};
+
+// ============================================
+// LOCAL ANALYSIS (Improved)
+// ============================================
+
+const analyzeResumeLocally = (resumeText, jdText) => {
+  const resumeKeywords = extractKeywords(resumeText);
+  const jdKeywords = extractKeywords(jdText);
   
-  const jdHardSkills = categorizeSkills(jdWords).hard;
-  const jdSoftSkills = categorizeSkills(jdWords).soft;
+  const { matched, missing } = matchKeywords(resumeKeywords, jdKeywords);
+  const matchedKeywords = matched.map(m => m.keyword);
   
-  const hardScore = jdHardSkills.length > 0 ? (categorizedMatched.hard.length / Math.max(jdHardSkills.length, 1)) * 100 : 100;
-  const softScore = jdSoftSkills.length > 0 ? (categorizedMatched.soft.length / Math.max(jdSoftSkills.length, 1)) * 100 : 100;
-  const generalScore = jdWords.length > 0 ? (matched.length / jdWords.length) * 100 : 0;
+  // Categorize
+  const matchedHard = matchedKeywords.filter(k => categorizeSkill(k) === 'hard');
+  const matchedSoft = matchedKeywords.filter(k => categorizeSkill(k) === 'soft');
+  const missingHard = missing.filter(k => categorizeSkill(k) === 'hard');
+  const missingSoft = missing.filter(k => categorizeSkill(k) === 'soft');
+  
+  const jdHard = jdKeywords.filter(k => categorizeSkill(k) === 'hard');
+  const jdSoft = jdKeywords.filter(k => categorizeSkill(k) === 'soft');
+  
+  // Calculate scores
+  const hardScore = jdHard.length > 0 ? (matchedHard.length / jdHard.length) * 100 : 100;
+  const softScore = jdSoft.length > 0 ? (matchedSoft.length / jdSoft.length) * 100 : 100;
+  const generalScore = jdKeywords.length > 0 ? (matchedKeywords.length / jdKeywords.length) * 100 : 0;
   
   const overallScore = Math.min(100, Math.round(
-    (hardScore * 0.6) + (softScore * 0.3) + (generalScore * 0.1)
+    (hardScore * 0.6) + (softScore * 0.25) + (generalScore * 0.15)
   ));
 
+  // Format checks
   const hasEmail = /\b[\w.-]+@[\w.-]+\.\w+\b/.test(resumeText);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(resumeText);
   const hasLinkedIn = /linkedin/i.test(resumeText);
-  const hasNumbers = /\d+%|\$[\d,]+|\d+\+|\d+ (years?|months?|projects?|teams?|clients?|customers?)/i.test(resumeText);
-  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered', 'drove', 'executed', 'established', 'generated', 'grew', 'initiated', 'optimized', 'spearheaded', 'streamlined', 'transformed', 'orchestrated', 'pioneered', 'revamped', 'accelerated', 'championed'];
+  const hasNumbers = /\d+%|\$[\d,]+|\d+\+|\d+ (years?|months?|projects?|teams?|clients?|customers?|members?)/i.test(resumeText);
+  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered', 'drove', 'executed', 'established', 'generated', 'grew', 'initiated', 'optimized', 'spearheaded', 'streamlined', 'transformed', 'orchestrated', 'pioneered'];
   const hasActionVerbs = actionVerbs.some(verb => resumeText.toLowerCase().includes(verb));
   const wordCount = resumeText.split(/\s+/).length;
   const hasSections = /experience|education|skills|summary|objective|projects?|certifications?/i.test(resumeText);
 
+  // Generate recommendations
   const recommendations = [];
   
-  if (overallScore < 50) {
+  if (missingHard.length > 0) {
     recommendations.push({
       priority: 'high',
-      title: 'Critical: Low Keyword Match',
-      description: 'Your resume matches less than 50% of job requirements. Add missing hard skills to your experience section.',
-      example: `Add keywords like: ${categorizedMissing.hard.slice(0, 3).join(', ')}`
-    });
-  }
-  
-  if (categorizedMissing.hard.length > 3) {
-    recommendations.push({
-      priority: 'high',
-      title: 'Add Technical Skills',
-      description: `Include these missing skills if you have them: ${categorizedMissing.hard.slice(0, 5).join(', ')}`,
-      example: 'Add these in your Skills section or demonstrate them in your Experience bullet points'
+      title: 'Add Missing Technical Skills',
+      description: `Include these skills if you have them: ${missingHard.slice(0, 5).join(', ')}`,
+      example: 'Add to your Skills section or demonstrate in Experience bullet points'
     });
   }
 
@@ -146,7 +330,7 @@ const analyzeResumeLocally = (resumeText, jdText) => {
       priority: 'high',
       title: 'Quantify Your Achievements',
       description: 'Add numbers, percentages, and metrics to demonstrate impact.',
-      example: 'Instead of "Improved sales", write "Increased sales by 35% over 6 months"'
+      example: 'Instead of "Improved performance", write "Improved performance by 40%"'
     });
   }
 
@@ -155,16 +339,16 @@ const analyzeResumeLocally = (resumeText, jdText) => {
       priority: 'medium',
       title: 'Use Strong Action Verbs',
       description: 'Start bullet points with powerful action verbs.',
-      example: 'Use verbs like: Led, Developed, Implemented, Achieved, Optimized'
+      example: 'Led, Developed, Implemented, Achieved, Optimized, Spearheaded'
     });
   }
   
-  if (categorizedMissing.soft.length > 2) {
+  if (missingSoft.length > 0) {
     recommendations.push({
       priority: 'medium',
       title: 'Demonstrate Soft Skills',
-      description: `Show these qualities through your achievements: ${categorizedMissing.soft.slice(0, 3).join(', ')}`,
-      example: 'Instead of listing "leadership", write "Led a team of 5 engineers to deliver project 2 weeks early"'
+      description: `Show these qualities: ${missingSoft.slice(0, 3).join(', ')}`,
+      example: 'Instead of listing "leadership", write "Led team of 5 to deliver project early"'
     });
   }
 
@@ -172,85 +356,166 @@ const analyzeResumeLocally = (resumeText, jdText) => {
     recommendations.push({
       priority: 'medium',
       title: 'Add More Detail',
-      description: 'Your resume seems short. Aim for 400-600 words with detailed accomplishments.',
-      example: 'Add 2-3 bullet points per role describing your specific contributions and results'
+      description: 'Your resume may be too short. Aim for 400-600 words.',
+      example: 'Add 2-3 bullet points per role with specific accomplishments'
     });
   }
 
-  if (overallScore >= 70 && overallScore < 85) {
+  if (overallScore >= 70) {
     recommendations.push({
       priority: 'low',
-      title: 'Fine-tune for Higher Match',
-      description: 'You\'re close! Mirror exact phrases from the job description where applicable.',
-      example: 'If JD says "cross-functional collaboration", use that exact phrase in your resume'
+      title: 'Mirror Job Description Language',
+      description: 'Use exact phrases from the JD where applicable.',
+      example: 'If JD says "cross-functional collaboration", use that exact phrase'
     });
   }
 
   return {
     overallScore,
     summary: overallScore >= 80 
-      ? "Excellent match! Your resume is well-aligned with this job description."
+      ? "Excellent match! Your resume aligns well with this job description."
       : overallScore >= 60 
-        ? "Good foundation. With some targeted improvements, you can significantly increase your match rate."
-        : "Your resume needs optimization for this role. Focus on adding missing keywords and quantifying achievements.",
+        ? "Good foundation. Some targeted improvements can boost your score."
+        : "Your resume needs optimization. Focus on adding missing keywords.",
     sections: {
       experience: {
         score: Math.round(hardScore * 0.8 + (hasNumbers ? 20 : 0)),
-        feedback: hasNumbers ? "Good use of metrics in experience section." : "Add more quantified achievements.",
-        strengths: hasActionVerbs ? ["Uses action verbs"] : [],
-        improvements: hasNumbers ? [] : ["Add numbers and percentages to show impact"]
+        feedback: hasNumbers ? "Good use of metrics." : "Add quantified achievements.",
+        strengths: hasActionVerbs ? ["Uses action verbs", "Clear structure"] : ["Clear structure"],
+        improvements: hasNumbers ? [] : ["Add numbers and percentages"]
       },
       skills: {
         score: Math.round(hardScore),
-        matched: [...new Set(categorizedMatched.hard)].slice(0, 10),
-        missing: [...new Set(categorizedMissing.hard)].slice(0, 10),
-        feedback: categorizedMissing.hard.length > 5 ? "Missing several key technical skills from JD" : "Good skill alignment"
+        matched: [...new Set(matchedHard)].slice(0, 12),
+        missing: [...new Set(missingHard)].slice(0, 12),
+        feedback: missingHard.length > 5 ? "Missing key technical skills" : "Good skill coverage"
       },
       education: {
         score: 80,
-        feedback: "Education section detected"
+        feedback: "Education section present"
       },
       formatting: {
         score: (hasEmail ? 25 : 0) + (hasPhone ? 25 : 0) + (hasLinkedIn ? 25 : 0) + (hasSections ? 25 : 0),
         issues: [
-          ...(!hasEmail ? ["No email address found"] : []),
-          ...(!hasPhone ? ["No phone number found"] : []),
-          ...(!hasLinkedIn ? ["Consider adding LinkedIn URL"] : []),
-          ...(!hasSections ? ["Add standard section headers"] : [])
+          ...(!hasEmail ? ["No email address"] : []),
+          ...(!hasPhone ? ["No phone number"] : []),
+          ...(!hasLinkedIn ? ["Consider adding LinkedIn"] : []),
+          ...(!hasSections ? ["Add section headers"] : [])
         ],
         passed: [
-          ...(hasEmail ? ["Email address detected"] : []),
-          ...(hasPhone ? ["Phone number detected"] : []),
-          ...(hasLinkedIn ? ["LinkedIn profile included"] : []),
-          ...(hasSections ? ["Standard sections present"] : [])
+          ...(hasEmail ? ["Email detected"] : []),
+          ...(hasPhone ? ["Phone detected"] : []),
+          ...(hasLinkedIn ? ["LinkedIn included"] : []),
+          ...(hasSections ? ["Sections present"] : [])
         ]
       }
     },
     keywordAnalysis: {
-      matchedKeywords: [...new Set(matched)].slice(0, 20),
+      matchedKeywords: [...new Set(matchedKeywords)].slice(0, 20),
       missingKeywords: [...new Set(missing)].slice(0, 15),
-      keywordDensity: matched.length > jdWords.length * 0.6 ? "Good keyword coverage" : "Consider adding more relevant keywords"
+      keywordDensity: matchedKeywords.length > jdKeywords.length * 0.6 
+        ? "Good keyword coverage" 
+        : "Consider adding more relevant keywords",
+      matchDetails: matched.slice(0, 10) // Show match types
     },
     recommendations,
-    bulletPointRewrites: [],
+    bulletPointRewrites: [], // AI will fill this
     atsCompatibility: {
       score: Math.round((hasEmail ? 20 : 0) + (hasPhone ? 20 : 0) + (hasSections ? 30 : 0) + (wordCount > 300 ? 30 : 15)),
       issues: [
-        ...(wordCount < 300 ? ["Resume may be too short for ATS parsing"] : []),
-        ...(!hasSections ? ["Missing standard section headers"] : [])
+        ...(wordCount < 300 ? ["Resume may be too short"] : []),
+        ...(!hasSections ? ["Missing section headers"] : [])
       ],
       suggestions: [
-        "Use standard section names: Experience, Education, Skills",
+        "Use standard sections: Experience, Education, Skills",
         "Avoid tables, graphics, and columns",
-        "Use a clean, single-column format"
+        "Use clean, single-column format"
       ]
     },
     interviewTips: [
-      "Prepare examples for each skill listed in the job description",
-      "Practice the STAR method for behavioral questions",
-      `Be ready to discuss: ${categorizedMatched.hard.slice(0, 3).join(', ')}`
-    ]
+      "Prepare STAR examples for each listed skill",
+      `Be ready to discuss: ${matchedHard.slice(0, 3).join(', ')}`,
+      "Research the company's tech stack and culture"
+    ],
+    // Metadata for AI enhancement
+    _meta: {
+      resumeKeywordCount: resumeKeywords.length,
+      jdKeywordCount: jdKeywords.length,
+      matchCount: matchedKeywords.length,
+      missingCount: missing.length,
+      analysisType: 'local'
+    }
   };
+};
+
+// ============================================
+// AI ENHANCEMENT (Hybrid)
+// ============================================
+
+const enhanceWithAI = async (localResults, resumeText, jdText) => {
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        resumeText,
+        jdText,
+        localResults // Send local results for AI to enhance
+      })
+    });
+
+    const aiResults = await response.json();
+    
+    if (aiResults.error) {
+      console.log('AI enhancement failed, using local results');
+      return localResults;
+    }
+    
+    // Merge AI insights with local results
+    return {
+      ...localResults,
+      // Use AI score if available, otherwise keep local
+      overallScore: aiResults.overallScore || localResults.overallScore,
+      summary: aiResults.summary || localResults.summary,
+      
+      // Enhance sections with AI feedback
+      sections: {
+        ...localResults.sections,
+        experience: {
+          ...localResults.sections.experience,
+          feedback: aiResults.sections?.experience?.feedback || localResults.sections.experience.feedback,
+          strengths: aiResults.sections?.experience?.strengths || localResults.sections.experience.strengths,
+          improvements: aiResults.sections?.experience?.improvements || localResults.sections.experience.improvements
+        },
+        skills: {
+          ...localResults.sections.skills,
+          // Combine local and AI keyword analysis
+          matched: [...new Set([...localResults.sections.skills.matched, ...(aiResults.sections?.skills?.matched || [])])].slice(0, 15),
+          missing: [...new Set([...localResults.sections.skills.missing, ...(aiResults.sections?.skills?.missing || [])])].slice(0, 15),
+          feedback: aiResults.sections?.skills?.feedback || localResults.sections.skills.feedback
+        }
+      },
+      
+      // AI provides better recommendations
+      recommendations: aiResults.recommendations || localResults.recommendations,
+      
+      // AI provides rewrites (local can't do this)
+      bulletPointRewrites: aiResults.bulletPointRewrites || [],
+      
+      // Enhanced interview tips from AI
+      interviewTips: aiResults.interviewTips || localResults.interviewTips,
+      
+      // Mark as hybrid
+      _meta: {
+        ...localResults._meta,
+        analysisType: 'hybrid',
+        aiEnhanced: true
+      }
+    };
+  } catch (error) {
+    console.error('AI enhancement error:', error);
+    return localResults;
+  }
 };
 
 // ============================================
@@ -260,9 +525,9 @@ const analyzeResumeLocally = (resumeText, jdText) => {
 export default function ATSResumeAnalyzer() {
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
-  const [useAI, setUseAI] = useState(true); // AI enabled by default
   const [results, setResults] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStage, setAnalysisStage] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
   const [error, setError] = useState('');
   const [copiedIndex, setCopiedIndex] = useState(null);
@@ -272,32 +537,34 @@ export default function ATSResumeAnalyzer() {
     
     setIsAnalyzing(true);
     setError('');
+    setAnalysisStage('Extracting keywords...');
     
     try {
-      let analysisResults;
+      // STEP 1: Fast local analysis (instant)
+      await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for UX
+      setAnalysisStage('Matching skills...');
       
-      if (useAI) {
-        try {
-          analysisResults = await analyzeWithAI(resumeText, jdText);
-        } catch (aiError) {
-          console.log('AI analysis failed, falling back to local:', aiError);
-          // Fallback to local analysis if AI fails
-          analysisResults = analyzeResumeLocally(resumeText, jdText);
-        }
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        analysisResults = analyzeResumeLocally(resumeText, jdText);
-      }
+      const localResults = analyzeResumeLocally(resumeText, jdText);
       
-      setResults(analysisResults);
+      // Show local results immediately
+      setResults(localResults);
+      setAnalysisStage('Enhancing with AI...');
+      
+      // STEP 2: AI enhancement (background)
+      const enhancedResults = await enhanceWithAI(localResults, resumeText, jdText);
+      
+      // Update with AI-enhanced results
+      setResults(enhancedResults);
       setActiveTab('overview');
+      
     } catch (err) {
       setError(err.message || 'Analysis failed. Please try again.');
       console.error(err);
     } finally {
       setIsAnalyzing(false);
+      setAnalysisStage('');
     }
-  }, [resumeText, jdText, useAI]);
+  }, [resumeText, jdText]);
 
   const copyToClipboard = (text, index) => {
     navigator.clipboard.writeText(text);
@@ -330,15 +597,16 @@ export default function ATSResumeAnalyzer() {
               <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
                 ResuMatch AI
               </h1>
-              <p className="text-xs text-slate-500">AI-Powered ATS Optimizer</p>
+              <p className="text-xs text-slate-500">Hybrid ATS Optimizer</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> AI Powered
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-medium flex items-center gap-1">
+              <Cpu className="w-3 h-3" /> Local
             </span>
-            <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
-              Free
+            <span className="text-slate-600">+</span>
+            <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> AI
             </span>
           </div>
         </div>
@@ -347,44 +615,46 @@ export default function ATSResumeAnalyzer() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         {!results ? (
           <div className="space-y-8">
-            {/* Hero Section */}
+            {/* Hero */}
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
+                <Cpu className="w-4 h-4" />
+                <span>Instant Local Analysis</span>
+                <span className="text-slate-600">+</span>
                 <Sparkles className="w-4 h-4" />
-                Powered by Claude AI
+                <span>AI Enhancement</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 Beat the ATS. Land More Interviews.
               </h2>
               <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                Get intelligent, actionable feedback to optimize your resume for Applicant Tracking Systems. 
-                Our AI analyzes your resume against the job description and provides specific improvements.
+                Our hybrid approach gives you instant results with smart synonym matching, 
+                then enhances with AI for deeper insights and rewrite suggestions.
               </p>
             </div>
 
-            {/* Analysis Mode Toggle */}
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                      <Brain className="w-5 h-5 text-violet-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">AI-Powered Analysis</h3>
-                      <p className="text-sm text-slate-400">Get intelligent rewrite suggestions & detailed feedback</p>
-                    </div>
+            {/* How It Works */}
+            <div className="max-w-3xl mx-auto mb-8">
+              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+                <h3 className="font-semibold mb-4 text-center">How Hybrid Analysis Works</h3>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex-1 text-center p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                    <Cpu className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                    <div className="font-medium text-blue-400">Step 1: Local</div>
+                    <div className="text-xs text-slate-500 mt-1">Instant • Synonyms • Stemming</div>
                   </div>
-                  <button
-                    onClick={() => setUseAI(!useAI)}
-                    className={`relative w-14 h-7 rounded-full transition-colors ${
-                      useAI ? 'bg-violet-500' : 'bg-slate-700'
-                    }`}
-                  >
-                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-transform ${
-                      useAI ? 'translate-x-8' : 'translate-x-1'
-                    }`} />
-                  </button>
+                  <ArrowRight className="w-6 h-6 text-slate-600 flex-shrink-0" />
+                  <div className="flex-1 text-center p-4 bg-violet-500/10 rounded-xl border border-violet-500/20">
+                    <Sparkles className="w-8 h-8 text-violet-400 mx-auto mb-2" />
+                    <div className="font-medium text-violet-400">Step 2: AI</div>
+                    <div className="text-xs text-slate-500 mt-1">Semantic • Rewrites • Tips</div>
+                  </div>
+                  <ArrowRight className="w-6 h-6 text-slate-600 flex-shrink-0" />
+                  <div className="flex-1 text-center p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                    <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                    <div className="font-medium text-emerald-400">Result</div>
+                    <div className="text-xs text-slate-500 mt-1">Best of Both</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -408,28 +678,24 @@ export default function ATSResumeAnalyzer() {
                   placeholder="Paste your resume text here...
 
 Example:
-John Doe
-Software Engineer
-john@email.com | (555) 123-4567 | linkedin.com/in/johndoe
+John Doe | Software Engineer
+john@email.com | linkedin.com/in/johndoe
 
 EXPERIENCE
 Senior Software Engineer | Tech Company | 2020-Present
-• Led development of microservices architecture serving 1M+ users
+• Led development of microservices serving 1M+ users
 • Reduced API response time by 40% through optimization
-• Mentored team of 5 junior developers
+• Managed team of 5 developers using Agile/Scrum
 
 SKILLS
-Python, JavaScript, React, AWS, Docker, PostgreSQL"
+JavaScript, TypeScript, React, Node.js, AWS, Docker, K8s"
                   className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-slate-500">
                     {resumeText.split(/\s+/).filter(Boolean).length} words
                   </p>
-                  <button 
-                    onClick={() => setResumeText('')}
-                    className="text-xs text-slate-500 hover:text-slate-400"
-                  >
+                  <button onClick={() => setResumeText('')} className="text-xs text-slate-500 hover:text-slate-400">
                     Clear
                   </button>
                 </div>
@@ -454,36 +720,28 @@ Python, JavaScript, React, AWS, Docker, PostgreSQL"
 Example:
 Senior Software Engineer
 
-We're looking for a Senior Software Engineer to join our team.
-
 Requirements:
-• 5+ years of experience with Python and JavaScript
-• Experience with cloud platforms (AWS, GCP, or Azure)
-• Strong understanding of microservices architecture
-• Experience with CI/CD pipelines
-• Excellent communication and collaboration skills
-
-Nice to have:
-• Experience with React or Vue.js
-• Knowledge of Docker and Kubernetes
-• Machine learning experience"
+• 5+ years experience with JavaScript/TypeScript
+• Strong experience with React or Angular
+• Knowledge of AWS, GCP, or Azure
+• Experience with Kubernetes and Docker
+• Understanding of CI/CD pipelines
+• Excellent leadership and communication skills
+• Experience with microservices architecture"
                   className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-slate-500">
                     {jdText.split(/\s+/).filter(Boolean).length} words
                   </p>
-                  <button 
-                    onClick={() => setJdText('')}
-                    className="text-xs text-slate-500 hover:text-slate-400"
-                  >
+                  <button onClick={() => setJdText('')} className="text-xs text-slate-500 hover:text-slate-400">
                     Clear
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error */}
             {error && (
               <div className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
                 {error}
@@ -495,16 +753,16 @@ Nice to have:
               <button
                 onClick={handleAnalyze}
                 disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
-                className="group px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25 hover:shadow-violet-500/40"
+                className="group px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25"
               >
                 {isAnalyzing ? (
                   <>
                     <RefreshCw className="w-5 h-5 animate-spin" />
-                    {useAI ? 'AI Analyzing...' : 'Analyzing...'}
+                    {analysisStage}
                   </>
                 ) : (
                   <>
-                    {useAI ? <Sparkles className="w-5 h-5" /> : <Zap className="w-5 h-5" />}
+                    <Zap className="w-5 h-5" />
                     Analyze Resume
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
@@ -512,17 +770,17 @@ Nice to have:
               </button>
             </div>
 
-            {/* Features Grid */}
+            {/* Features */}
             <div className="grid md:grid-cols-4 gap-4 mt-16">
               {[
-                { icon: FileSearch, title: 'Smart Parsing', desc: 'Intelligent keyword extraction' },
-                { icon: BarChart3, title: 'Detailed Scoring', desc: 'Section-by-section analysis' },
-                { icon: Lightbulb, title: 'AI Suggestions', desc: 'Rewrite recommendations' },
-                { icon: Target, title: 'ATS Optimized', desc: 'Formatting checks' },
+                { icon: Cpu, title: 'Smart Synonyms', desc: '"JS" matches "JavaScript"', color: 'blue' },
+                { icon: BarChart3, title: 'Instant Scoring', desc: 'Results in milliseconds', color: 'violet' },
+                { icon: Sparkles, title: 'AI Rewrites', desc: 'Better bullet points', color: 'fuchsia' },
+                { icon: Target, title: 'ATS Optimized', desc: 'Beat the robots', color: 'emerald' },
               ].map((feature, i) => (
                 <div key={i} className="bg-slate-900/30 rounded-xl p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
-                  <div className="w-12 h-12 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-xl flex items-center justify-center mx-auto mb-3">
-                    <feature.icon className="w-6 h-6 text-violet-400" />
+                  <div className={`w-12 h-12 bg-${feature.color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                    <feature.icon className={`w-6 h-6 text-${feature.color}-400`} />
                   </div>
                   <h4 className="font-semibold mb-1">{feature.title}</h4>
                   <p className="text-sm text-slate-500">{feature.desc}</p>
@@ -531,28 +789,36 @@ Nice to have:
             </div>
           </div>
         ) : (
-          /* Results Section */
+          /* Results */
           <div className="space-y-6">
-            <button
-              onClick={() => setResults(null)}
-              className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
-            >
-              ← Analyze another resume
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setResults(null)}
+                className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
+              >
+                ← Analyze another resume
+              </button>
+              {results._meta?.analysisType && (
+                <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                  results._meta.aiEnhanced 
+                    ? 'bg-violet-500/20 text-violet-400' 
+                    : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {results._meta.aiEnhanced ? (
+                    <><Sparkles className="w-3 h-3" /> AI Enhanced</>
+                  ) : (
+                    <><Cpu className="w-3 h-3" /> Local Analysis</>
+                  )}
+                </span>
+              )}
+            </div>
 
             {/* Score Card */}
             <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 rounded-3xl p-8 border border-slate-800 shadow-2xl">
               <div className="flex flex-col lg:flex-row items-center gap-8">
-                {/* Score Circle */}
                 <div className="relative flex-shrink-0">
                   <svg className="w-48 h-48 transform -rotate-90">
-                    <circle
-                      cx="96" cy="96" r="88"
-                      stroke="currentColor"
-                      strokeWidth="12"
-                      fill="none"
-                      className="text-slate-800"
-                    />
+                    <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="12" fill="none" className="text-slate-800" />
                     <circle
                       cx="96" cy="96" r="88"
                       stroke="url(#scoreGradient)"
@@ -570,44 +836,32 @@ Nice to have:
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className={`text-5xl font-bold ${getScoreColor(results.overallScore)}`}>
-                      {results.overallScore}
-                    </span>
+                    <span className={`text-5xl font-bold ${getScoreColor(results.overallScore)}`}>{results.overallScore}</span>
                     <span className="text-slate-500 text-sm">Match Score</span>
                   </div>
                 </div>
                 
-                {/* Summary */}
                 <div className="flex-1 text-center lg:text-left">
                   <div className="flex items-center justify-center lg:justify-start gap-2 mb-3">
-                    {results.overallScore >= 80 ? (
-                      <span className="text-3xl">🎉</span>
-                    ) : results.overallScore >= 60 ? (
-                      <span className="text-3xl">👍</span>
-                    ) : (
-                      <span className="text-3xl">⚠️</span>
-                    )}
+                    {results.overallScore >= 80 ? <span className="text-3xl">🎉</span> : results.overallScore >= 60 ? <span className="text-3xl">👍</span> : <span className="text-3xl">⚠️</span>}
                     <h3 className="text-2xl font-bold">
-                      {results.overallScore >= 80 ? 'Excellent Match!' : 
-                       results.overallScore >= 60 ? 'Good Foundation' : 
-                       'Needs Optimization'}
+                      {results.overallScore >= 80 ? 'Excellent Match!' : results.overallScore >= 60 ? 'Good Foundation' : 'Needs Optimization'}
                     </h3>
                   </div>
                   <p className="text-slate-400 mb-6 max-w-xl">{results.summary}</p>
                   
-                  {/* Quick Stats */}
                   <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                     <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
                       <span className="text-emerald-400 font-semibold">{results.keywordAnalysis?.matchedKeywords?.length || 0}</span>
-                      <span className="text-slate-400 text-sm ml-2">keywords matched</span>
+                      <span className="text-slate-400 text-sm ml-2">matched</span>
                     </div>
                     <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                       <span className="text-amber-400 font-semibold">{results.keywordAnalysis?.missingKeywords?.length || 0}</span>
-                      <span className="text-slate-400 text-sm ml-2">keywords missing</span>
+                      <span className="text-slate-400 text-sm ml-2">missing</span>
                     </div>
                     <div className="px-4 py-2 bg-violet-500/10 border border-violet-500/20 rounded-xl">
                       <span className="text-violet-400 font-semibold">{results.recommendations?.length || 0}</span>
-                      <span className="text-slate-400 text-sm ml-2">recommendations</span>
+                      <span className="text-slate-400 text-sm ml-2">tips</span>
                     </div>
                   </div>
                 </div>
@@ -631,10 +885,7 @@ Nice to have:
                     <span className={`font-bold ${getScoreColor(section.score)}`}>{section.score}%</span>
                   </div>
                   <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full bg-gradient-to-r ${getScoreBg(section.score)} rounded-full transition-all duration-500`}
-                      style={{ width: `${section.score}%` }}
-                    />
+                    <div className={`h-full bg-gradient-to-r ${getScoreBg(section.score)} rounded-full transition-all duration-500`} style={{ width: `${section.score}%` }} />
                   </div>
                 </div>
               ))}
@@ -645,7 +896,7 @@ Nice to have:
               {[
                 { id: 'overview', label: 'Overview', icon: BarChart3 },
                 { id: 'keywords', label: 'Keywords', icon: Target },
-                { id: 'recommendations', label: 'Recommendations', icon: Lightbulb },
+                { id: 'recommendations', label: 'Tips', icon: Lightbulb },
                 { id: 'rewrites', label: 'AI Rewrites', icon: Sparkles },
                 { id: 'ats', label: 'ATS Check', icon: FileSearch },
               ].map((tab) => (
@@ -653,9 +904,7 @@ Nice to have:
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                    activeTab === tab.id 
-                      ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/25' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    activeTab === tab.id ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/25' : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
@@ -674,36 +923,24 @@ Nice to have:
                   </h4>
                   
                   <div className="grid md:grid-cols-2 gap-6">
-                    {/* Experience Section */}
                     <div className="bg-slate-800/50 rounded-xl p-5">
                       <h5 className="font-medium mb-3 flex items-center gap-2">
                         <FileText className="w-4 h-4 text-violet-400" />
-                        Experience Analysis
+                        Experience
                       </h5>
                       <p className="text-sm text-slate-400 mb-3">{results.sections?.experience?.feedback}</p>
-                      {results.sections?.experience?.strengths?.length > 0 && (
-                        <div className="space-y-2">
-                          {results.sections.experience.strengths.map((s, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm text-emerald-400">
-                              <CheckCircle className="w-4 h-4" />
-                              {s}
-                            </div>
-                          ))}
+                      {results.sections?.experience?.strengths?.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm text-emerald-400 mb-1">
+                          <CheckCircle className="w-4 h-4" />{s}
                         </div>
-                      )}
-                      {results.sections?.experience?.improvements?.length > 0 && (
-                        <div className="space-y-2 mt-2">
-                          {results.sections.experience.improvements.map((s, i) => (
-                            <div key={i} className="flex items-center gap-2 text-sm text-amber-400">
-                              <AlertCircle className="w-4 h-4" />
-                              {s}
-                            </div>
-                          ))}
+                      ))}
+                      {results.sections?.experience?.improvements?.map((s, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm text-amber-400 mb-1">
+                          <AlertCircle className="w-4 h-4" />{s}
                         </div>
-                      )}
+                      ))}
                     </div>
                     
-                    {/* Skills Section */}
                     <div className="bg-slate-800/50 rounded-xl p-5">
                       <h5 className="font-medium mb-3 flex items-center gap-2">
                         <Target className="w-4 h-4 text-fuchsia-400" />
@@ -712,31 +949,25 @@ Nice to have:
                       <p className="text-sm text-slate-400 mb-3">{results.sections?.skills?.feedback}</p>
                       <div className="flex flex-wrap gap-2">
                         {results.sections?.skills?.matched?.slice(0, 6).map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs border border-emerald-500/30">
-                            {skill}
-                          </span>
+                          <span key={i} className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded text-xs border border-emerald-500/30">{skill}</span>
                         ))}
                         {results.sections?.skills?.missing?.slice(0, 4).map((skill, i) => (
-                          <span key={i} className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs border border-red-500/30">
-                            + {skill}
-                          </span>
+                          <span key={i} className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs border border-red-500/30">+ {skill}</span>
                         ))}
                       </div>
                     </div>
                   </div>
                   
-                  {/* Interview Tips */}
-                  {results.interviewTips && results.interviewTips.length > 0 && (
+                  {results.interviewTips?.length > 0 && (
                     <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl p-5 border border-violet-500/20">
                       <h5 className="font-medium mb-3 flex items-center gap-2">
                         <Lightbulb className="w-4 h-4 text-violet-400" />
-                        Interview Preparation Tips
+                        Interview Tips
                       </h5>
                       <ul className="space-y-2">
                         {results.interviewTips.map((tip, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                            <span className="text-violet-400 mt-1">•</span>
-                            {tip}
+                            <span className="text-violet-400 mt-1">•</span>{tip}
                           </li>
                         ))}
                       </ul>
@@ -750,9 +981,9 @@ Nice to have:
                   <h4 className="font-semibold text-lg flex items-center gap-2">
                     <Target className="w-5 h-5 text-violet-400" />
                     Keyword Analysis
+                    <span className="ml-2 px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs">Synonym-Enhanced</span>
                   </h4>
                   
-                  {/* Missing Keywords */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <XCircle className="w-5 h-5 text-red-400" />
@@ -761,17 +992,14 @@ Nice to have:
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {results.keywordAnalysis?.missingKeywords?.map((kw, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-default">
-                          {kw}
-                        </span>
+                        <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20">{kw}</span>
                       ))}
                       {(!results.keywordAnalysis?.missingKeywords || results.keywordAnalysis.missingKeywords.length === 0) && (
-                        <p className="text-slate-500 text-sm">No critical keywords missing! Great job.</p>
+                        <p className="text-slate-500 text-sm">No critical keywords missing!</p>
                       )}
                     </div>
                   </div>
                   
-                  {/* Matched Keywords */}
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <CheckCircle className="w-5 h-5 text-emerald-400" />
@@ -780,14 +1008,11 @@ Nice to have:
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {results.keywordAnalysis?.matchedKeywords?.map((kw, i) => (
-                        <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">
-                          {kw}
-                        </span>
+                        <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">{kw}</span>
                       ))}
                     </div>
                   </div>
                   
-                  {/* Keyword Density */}
                   {results.keywordAnalysis?.keywordDensity && (
                     <div className="bg-slate-800/50 rounded-xl p-4">
                       <p className="text-sm text-slate-400">{results.keywordAnalysis.keywordDensity}</p>
@@ -800,27 +1025,17 @@ Nice to have:
                 <div className="space-y-4">
                   <h4 className="font-semibold text-lg flex items-center gap-2">
                     <Lightbulb className="w-5 h-5 text-violet-400" />
-                    Improvement Recommendations
+                    Recommendations
                   </h4>
                   
                   {results.recommendations?.map((rec, i) => (
                     <div key={i} className={`p-5 rounded-xl border transition-colors ${
-                      rec.priority === 'high' 
-                        ? 'bg-red-500/5 border-red-500/20 hover:border-red-500/40' 
-                        : rec.priority === 'medium' 
-                          ? 'bg-amber-500/5 border-amber-500/20 hover:border-amber-500/40' 
-                          : 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40'
+                      rec.priority === 'high' ? 'bg-red-500/5 border-red-500/20' : rec.priority === 'medium' ? 'bg-amber-500/5 border-amber-500/20' : 'bg-emerald-500/5 border-emerald-500/20'
                     }`}>
                       <div className="flex items-start gap-3">
                         <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                          rec.priority === 'high' 
-                            ? 'bg-red-500/20 text-red-400' 
-                            : rec.priority === 'medium' 
-                              ? 'bg-amber-500/20 text-amber-400' 
-                              : 'bg-emerald-500/20 text-emerald-400'
-                        }`}>
-                          {rec.priority}
-                        </span>
+                          rec.priority === 'high' ? 'bg-red-500/20 text-red-400' : rec.priority === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'
+                        }`}>{rec.priority}</span>
                         <div className="flex-1">
                           <h5 className="font-semibold mb-1">{rec.title}</h5>
                           <p className="text-sm text-slate-400 mb-2">{rec.description}</p>
@@ -834,10 +1049,6 @@ Nice to have:
                       </div>
                     </div>
                   ))}
-                  
-                  {(!results.recommendations || results.recommendations.length === 0) && (
-                    <p className="text-slate-500 text-center py-8">No recommendations at this time. Your resume looks great!</p>
-                  )}
                 </div>
               )}
 
@@ -848,7 +1059,7 @@ Nice to have:
                     AI-Powered Rewrites
                   </h4>
                   
-                  {results.bulletPointRewrites && results.bulletPointRewrites.length > 0 ? (
+                  {results.bulletPointRewrites?.length > 0 ? (
                     results.bulletPointRewrites.map((rewrite, i) => (
                       <div key={i} className="bg-slate-800/50 rounded-xl p-5 space-y-4">
                         <div>
@@ -880,9 +1091,11 @@ Nice to have:
                       <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Sparkles className="w-8 h-8 text-violet-400" />
                       </div>
-                      <h5 className="font-semibold mb-2">AI Rewrites Available with AI Mode</h5>
+                      <h5 className="font-semibold mb-2">AI Rewrites Loading...</h5>
                       <p className="text-slate-400 text-sm max-w-md mx-auto">
-                        Make sure AI-Powered Analysis is enabled to get intelligent rewrite suggestions for your resume bullet points.
+                        {results._meta?.aiEnhanced 
+                          ? "No specific rewrites suggested for this resume." 
+                          : "AI is enhancing your results. Rewrites will appear shortly."}
                       </p>
                     </div>
                   )}
@@ -893,29 +1106,24 @@ Nice to have:
                 <div className="space-y-6">
                   <h4 className="font-semibold text-lg flex items-center gap-2">
                     <FileSearch className="w-5 h-5 text-violet-400" />
-                    ATS Compatibility Check
+                    ATS Compatibility
                   </h4>
                   
-                  {/* ATS Score */}
                   <div className="bg-slate-800/50 rounded-xl p-5">
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-slate-400">ATS Compatibility Score</span>
+                      <span className="text-slate-400">ATS Score</span>
                       <span className={`text-2xl font-bold ${getScoreColor(results.atsCompatibility?.score || 0)}`}>
                         {results.atsCompatibility?.score || 0}%
                       </span>
                     </div>
                     <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r ${getScoreBg(results.atsCompatibility?.score || 0)} rounded-full`}
-                        style={{ width: `${results.atsCompatibility?.score || 0}%` }}
-                      />
+                      <div className={`h-full bg-gradient-to-r ${getScoreBg(results.atsCompatibility?.score || 0)} rounded-full`} style={{ width: `${results.atsCompatibility?.score || 0}%` }} />
                     </div>
                   </div>
                   
-                  {/* Passed Checks */}
                   {results.sections?.formatting?.passed?.length > 0 && (
                     <div>
-                      <h5 className="font-medium mb-3 text-emerald-400">✓ Passed Checks</h5>
+                      <h5 className="font-medium mb-3 text-emerald-400">✓ Passed</h5>
                       <div className="space-y-2">
                         {results.sections.formatting.passed.map((item, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
@@ -927,10 +1135,9 @@ Nice to have:
                     </div>
                   )}
                   
-                  {/* Issues */}
                   {results.atsCompatibility?.issues?.length > 0 && (
                     <div>
-                      <h5 className="font-medium mb-3 text-amber-400">⚠ Issues Found</h5>
+                      <h5 className="font-medium mb-3 text-amber-400">⚠ Issues</h5>
                       <div className="space-y-2">
                         {results.atsCompatibility.issues.map((item, i) => (
                           <div key={i} className="flex items-center gap-3 p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
@@ -942,15 +1149,13 @@ Nice to have:
                     </div>
                   )}
                   
-                  {/* Suggestions */}
                   {results.atsCompatibility?.suggestions?.length > 0 && (
                     <div className="bg-violet-500/10 rounded-xl p-5 border border-violet-500/20">
-                      <h5 className="font-medium mb-3 text-violet-400">💡 ATS Tips</h5>
+                      <h5 className="font-medium mb-3 text-violet-400">💡 Tips</h5>
                       <ul className="space-y-2">
                         {results.atsCompatibility.suggestions.map((tip, i) => (
                           <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                            <span className="text-violet-400 mt-0.5">•</span>
-                            {tip}
+                            <span className="text-violet-400 mt-0.5">•</span>{tip}
                           </li>
                         ))}
                       </ul>
@@ -966,8 +1171,8 @@ Nice to have:
       {/* Footer */}
       <footer className="border-t border-slate-800 mt-16 py-8">
         <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>ResuMatch AI — A Product Management Portfolio Project by Sweatha Hari</p>
-          <p className="mt-1">Powered by Claude AI for intelligent resume analysis</p>
+          <p>ResuMatch AI — Hybrid Analysis (Local + AI)</p>
+          <p className="mt-1">A Product Management Portfolio Project by Sweatha Hari</p>
         </div>
       </footer>
     </div>
