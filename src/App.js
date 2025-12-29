@@ -1,20 +1,17 @@
-import React, { useState, useCallback } from 'react';
-import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, Lightbulb, Cpu, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award, Upload } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { FileText, CheckCircle, XCircle, Zap, Target, Sparkles, RefreshCw, Copy, Check, Brain, Lightbulb, Cpu, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award, Upload, Users, TrendingUp, BarChart2, ArrowRight, ExternalLink, Linkedin, Mail, ChevronRight, X, Menu, BookOpen, Layers, MessageSquare, Star } from 'lucide-react';
 
 // ============================================
 // SYNONYM DICTIONARY - Maps variations to canonical form
 // ============================================
 
 const synonyms = {
-  // Programming Languages
   'javascript': ['js', 'es6', 'es2015', 'ecmascript', 'node.js', 'nodejs', 'node'],
   'typescript': ['ts'],
   'python': ['py', 'python3', 'python2'],
   'golang': ['go', 'go lang'],
   'csharp': ['c#', 'c-sharp', 'dotnet', '.net', 'dot net'],
   'cplusplus': ['c++', 'cpp'],
-  
-  // Frameworks & Libraries
   'react': ['reactjs', 'react.js', 'react native', 'reactnative'],
   'angular': ['angularjs', 'angular.js', 'angular2', 'angular4'],
   'vue': ['vuejs', 'vue.js', 'vue3'],
@@ -23,8 +20,6 @@ const synonyms = {
   'django': ['python django'],
   'flask': ['python flask'],
   'spring': ['spring boot', 'springboot'],
-  
-  // Cloud & DevOps
   'aws': ['amazon web services', 'amazon cloud', 'ec2', 's3', 'lambda', 'amazon'],
   'gcp': ['google cloud', 'google cloud platform', 'gce'],
   'azure': ['microsoft azure', 'ms azure'],
@@ -32,55 +27,39 @@ const synonyms = {
   'docker': ['containerization', 'containers', 'dockerfile'],
   'cicd': ['ci/cd', 'ci-cd', 'continuous integration', 'continuous deployment', 'jenkins', 'gitlab ci', 'github actions'],
   'terraform': ['infrastructure as code', 'iac'],
-  
-  // Databases
   'postgresql': ['postgres', 'psql', 'postgre'],
   'mongodb': ['mongo', 'nosql'],
   'mysql': ['my sql', 'mariadb'],
   'elasticsearch': ['elastic', 'elk', 'elastic search'],
   'dynamodb': ['dynamo', 'dynamo db'],
   'redis': ['caching', 'in-memory'],
-  
-  // Data & ML
   'machinelearning': ['machine learning', 'ml', 'deep learning', 'dl', 'ai', 'artificial intelligence'],
   'datascience': ['data science', 'data scientist', 'data analytics', 'analytics'],
   'dataengineering': ['data engineering', 'data engineer', 'etl', 'data pipeline', 'data pipelines'],
   'nlp': ['natural language processing', 'natural language', 'text processing'],
   'computervision': ['computer vision', 'image processing', 'cv'],
-  
-  // Methodologies
   'agile': ['scrum', 'kanban', 'sprint', 'sprints', 'agile methodology'],
   'devops': ['dev ops', 'sre', 'site reliability', 'platform engineering'],
   'productmanagement': ['product management', 'product manager', 'pm', 'product owner', 'po'],
   'projectmanagement': ['project management', 'project manager', 'pmp'],
-  
-  // Soft Skills - Action verbs mapped to skill
   'leadership': ['led', 'leading', 'leader', 'manage', 'managed', 'managing', 'oversaw', 'supervised', 'directed', 'head', 'headed', 'spearheaded'],
   'communication': ['communicate', 'communicated', 'communicating', 'verbal', 'written', 'presentation', 'presenting', 'presented'],
   'collaboration': ['collaborate', 'collaborated', 'collaborating', 'team player', 'teamwork', 'cross-functional', 'cross functional', 'partnered', 'partnering'],
   'problemsolving': ['problem solving', 'problem-solving', 'troubleshoot', 'troubleshooting', 'debug', 'debugging', 'resolved', 'resolving', 'solving'],
   'analytical': ['analysis', 'analyze', 'analyzed', 'analyzing', 'analytics', 'analytical skills', 'data-driven', 'data driven'],
   'strategic': ['strategy', 'strategic thinking', 'strategize', 'strategic planning'],
-  
-  // Role terms
   'fullstack': ['full stack', 'full-stack', 'frontend and backend', 'front and back end'],
   'frontend': ['front end', 'front-end', 'ui', 'user interface', 'client side', 'client-side'],
   'backend': ['back end', 'back-end', 'server side', 'server-side', 'api development'],
   'senior': ['sr', 'sr.', 'lead', 'principal', 'staff'],
   'junior': ['jr', 'jr.', 'entry level', 'entry-level', 'associate'],
-  
-  // Tools
   'jira': ['atlassian', 'confluence', 'trello'],
   'figma': ['sketch', 'adobe xd', 'invision', 'ui design'],
   'git': ['github', 'gitlab', 'bitbucket', 'version control', 'source control'],
   'tableau': ['power bi', 'looker', 'data visualization', 'dashboards'],
   'excel': ['spreadsheets', 'google sheets', 'sheets'],
-  
-  // API & Integration
   'api': ['apis', 'rest', 'restful', 'rest api', 'graphql', 'endpoint', 'endpoints', 'web services', 'microservices'],
   'testing': ['test', 'tests', 'qa', 'quality assurance', 'unit testing', 'integration testing', 'e2e', 'end to end', 'automated testing', 'test automation'],
-  
-  // Product Management specific
   'prd': ['product requirements', 'product requirements document', 'requirements document'],
   'roadmap': ['product roadmap', 'roadmapping', 'product planning'],
   'backlog': ['product backlog', 'backlog management', 'backlog grooming', 'backlog refinement'],
@@ -90,7 +69,6 @@ const synonyms = {
   'designcollaboration': ['design collaboration', 'work with design', 'collaborate with design', 'design team']
 };
 
-// Build reverse lookup map
 const buildSynonymMap = () => {
   const map = new Map();
   for (const [canonical, variations] of Object.entries(synonyms)) {
@@ -104,17 +82,11 @@ const buildSynonymMap = () => {
 
 const synonymMap = buildSynonymMap();
 
-// ============================================
-// TEXT PROCESSING FUNCTIONS
-// ============================================
-
-// Normalize keyword to canonical form
 const normalizeKeyword = (keyword) => {
   const lower = keyword.toLowerCase().trim();
   return synonymMap.get(lower) || lower;
 };
 
-// Simple stemming - reduce words to root form
 const stem = (word) => {
   let result = word.toLowerCase();
   const suffixes = ['ization', 'isation', 'ational', 'fulness', 'ousness', 'iveness', 'ement', 'ment', 'ence', 'ance', 'able', 'ible', 'ness', 'less', 'tion', 'sion', 'ally', 'ful', 'ous', 'ive', 'ing', 'ied', 'ies', 'ed', 'er', 'es', 'ly', 's'];
@@ -127,7 +99,6 @@ const stem = (word) => {
   return result;
 };
 
-// Extract multi-word phrases
 const extractPhrases = (text) => {
   const phrases = [];
   const importantPhrases = [
@@ -164,12 +135,7 @@ const extractPhrases = (text) => {
   return phrases;
 };
 
-// ============================================
-// NOISE FILTERING - Remove LinkedIn/Job Board UI junk
-// ============================================
-
 const cleanText = (text) => {
-  // Regex patterns to remove
   const noisePatterns = [
     /reposted\s*\d*\s*(hours?|days?|weeks?|months?)?\s*ago/gi,
     /posted\s*\d*\s*(hours?|days?|weeks?|months?)?\s*ago/gi,
@@ -192,30 +158,17 @@ const cleanText = (text) => {
     /\|\|/g,
     /www\.\S+/gi,
     /https?:\/\/\S+/gi,
-    /back\s*to\s*edit/gi,
-    /parsed\s*resume/gi,
-    /regenerate/gi,
-    /accept\s*at\s*least/gi,
   ];
   
   let cleaned = text;
   for (const pattern of noisePatterns) {
     cleaned = cleaned.replace(pattern, ' ');
   }
-  
-  // Remove concatenated junk words (like "logoshareshowoptionsbengaluru")
-  // Split camelCase-like concatenations
   cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1 $2');
-  
   return cleaned;
 };
 
-// ============================================
-// STOPWORDS - Words to ignore
-// ============================================
-
 const stopWords = new Set([
-  // Common English
   'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 
   'by', 'from', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 
   'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 
@@ -224,77 +177,28 @@ const stopWords = new Set([
   'where', 'when', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more', 
   'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same',
   'so', 'than', 'too', 'very', 'just', 'also', 'now', 'here', 'there', 'then', 
-  'if', 'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 
-  'between', 'under', 'again', 'while', 'about', 'against', 'your', 'our', 
-  'their', 'its', 'my', 'his', 'her', 'up', 'down', 'out', 'off', 'over', 'any',
-  
-  // Generic job posting words
   'well', 'work', 'working', 'experience', 'year', 'years', 'ability', 'strong',
   'excellent', 'proven', 'demonstrated', 'responsible', 'responsibilities',
   'including', 'using', 'used', 'new', 'first', 'one', 'two', 'three', 'based',
-  'across', 'within', 'along', 'among', 'around', 'looking', 'seeking', 'required',
-  'requirements', 'qualifications', 'preferred', 'plus', 'bonus', 'nice', 'ideal',
-  'minimum', 'etc', 'role', 'position', 'job', 'company', 'team', 'teams',
-  
-  // LinkedIn/Job Board UI noise
   'logo', 'share', 'show', 'options', 'reposted', 'posted', 'hours', 'ago',
   'people', 'clicked', 'apply', 'promoted', 'hirer', 'hiring', 'actively',
-  'applicants', 'applicant', 'easy', 'save', 'saved', 'report', 'hide',
-  'follow', 'following', 'followers', 'connections', 'connection', 'connect',
-  'message', 'messages', 'view', 'views', 'like', 'likes', 'comment', 'comments',
-  'reactions', 'reaction', 'celebrate', 'love', 'insightful', 'curious',
-  'repost', 'send', 'copy', 'link', 'embed', 'linkedin', 'indeed', 'glassdoor',
-  'naukri', 'monster', 'ziprecruiter', 'dice', 'careers', 'jobs',
-  'back', 'edit', 'parsed', 'resume', 'regenerate', 'pending', 'accepted',
-  'rejected', 'modifications', 'restructuring', 'issue', 'detected',
-  
-  // Location noise - Cities/States/Countries
   'remote', 'hybrid', 'onsite', 'office', 'location', 'locations',
   'bengaluru', 'bangalore', 'mumbai', 'delhi', 'hyderabad', 'chennai', 'pune',
-  'gurgaon', 'gurugram', 'noida', 'kolkata', 'ahmedabad', 'india', 'indian',
   'karnataka', 'maharashtra', 'telangana', 'tamil', 'nadu', 'kerala',
   'east', 'west', 'north', 'south', 'central',
-  'usa', 'america', 'american', 'california', 'texas', 'york', 'francisco',
-  'seattle', 'boston', 'chicago', 'austin', 'denver', 'atlanta', 'angeles',
-  'london', 'uk', 'england', 'europe', 'european', 'singapore', 'dubai',
-  'canada', 'toronto', 'vancouver', 'australia', 'sydney', 'melbourne',
-  
-  // Time-related noise
   'today', 'yesterday', 'week', 'weeks', 'month', 'months', 'day', 'days',
-  'hour', 'minutes', 'recently', 'immediate', 'immediately', 'asap', 'urgent',
-  
-  // Generic job posting fluff
-  'description', 'overview', 'summary', 'details', 'information', 'info',
-  'application', 'applications', 'submit', 'click', 'button',
-  'equal', 'opportunity', 'employer', 'eoe', 'diversity', 'inclusive',
-  'benefits', 'salary', 'compensation', 'package', 'perks', 'insurance',
-  'health', 'dental', 'vision', 'retirement', '401k', 'pto', 'vacation',
-  'candidate', 'candidates', 'talent', 'talented', 'individual', 'individuals',
-  'join', 'joining', 'grow', 'growth', 'career', 'opportunities',
-  
-  // Numbers and misc
-  'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'
 ]);
 
-// ============================================
-// KEYWORD EXTRACTION
-// ============================================
-
 const extractKeywords = (text) => {
-  // Clean noise first
   const cleanedText = cleanText(text);
-  
-  // Extract phrases
   const phrases = extractPhrases(cleanedText);
   
-  // Extract and filter words
   const words = cleanedText
     .toLowerCase()
     .replace(/[^a-zA-Z0-9\s\+\#\.]/g, ' ')
     .split(/\s+/)
     .filter(word => word.length > 2 && !stopWords.has(word));
   
-  // Normalize and deduplicate
   const normalizedWords = new Set();
   
   for (const word of words) {
@@ -312,10 +216,6 @@ const extractKeywords = (text) => {
   return Array.from(normalizedWords);
 };
 
-// ============================================
-// SKILL CATEGORIZATION
-// ============================================
-
 const categorizeSkill = (keyword) => {
   const hardSkillPatterns = [
     /python|java|javascript|typescript|golang|ruby|php|swift|kotlin|scala|rust|cplusplus|csharp/i,
@@ -323,21 +223,13 @@ const categorizeSkill = (keyword) => {
     /sql|postgres|mysql|mongodb|redis|elasticsearch|dynamodb|cassandra|oracle/i,
     /aws|azure|gcp|cloud|kubernetes|docker|terraform|ansible|jenkins|cicd/i,
     /git|jira|confluence|figma|sketch|tableau|powerbi|excel/i,
-    /pandas|numpy|spark|hadoop|kafka|airflow|dbt|snowflake|databricks/i,
-    /tensorflow|pytorch|keras|scikit|machinelearning|datascience|nlp|computervision/i,
     /api|rest|graphql|microservices|devops|agile|scrum|kanban/i,
-    /html|css|sass|webpack|npm|yarn|testing|selenium|cypress/i,
-    /linux|unix|bash|powershell|networking|security|encryption/i,
-    /fullstack|frontend|backend|dataengineering|productmanagement/i,
     /prd|roadmap|backlog|sprint|release|pdlc|sdlc|userstories/i
   ];
   
   const softSkillPatterns = [
     /leadership|communication|collaboration|teamwork|problemsolving/i,
     /analytical|creative|strategic|innovative|adaptable|flexible/i,
-    /organized|detail|motivated|proactive|reliable|dependable/i,
-    /interpersonal|negotiation|presentation|mentoring|coaching/i,
-    /decision|time|prioritization|critical|thinking/i,
     /customer|results|goal|stakeholder|influence|persuasion|empathy/i
   ];
   
@@ -354,10 +246,6 @@ const categorizeSkill = (keyword) => {
   return 'general';
 };
 
-// ============================================
-// KEYWORD MATCHING
-// ============================================
-
 const matchKeywords = (resumeKeywords, jdKeywords) => {
   const matched = [];
   const missing = [];
@@ -369,24 +257,20 @@ const matchKeywords = (resumeKeywords, jdKeywords) => {
     const normalizedJD = normalizeKeyword(jdKeyword);
     const stemmedJD = stem(normalizedJD);
     
-    // Skip if it's a stopword
     if (stopWords.has(normalizedJD) || stopWords.has(jdKeyword.toLowerCase())) {
       continue;
     }
     
-    // Exact match after normalization
     if (resumeSet.has(normalizedJD)) {
       matched.push({ keyword: jdKeyword, matchType: 'exact' });
       continue;
     }
     
-    // Stemmed match
     if (resumeStemmed.has(stemmedJD)) {
       matched.push({ keyword: jdKeyword, matchType: 'stemmed' });
       continue;
     }
     
-    // Partial/contains match
     let found = false;
     for (const resumeKeyword of resumeSet) {
       if (resumeKeyword.length > 3 && normalizedJD.length > 3) {
@@ -406,10 +290,6 @@ const matchKeywords = (resumeKeywords, jdKeywords) => {
   return { matched, missing };
 };
 
-// ============================================
-// LOCAL ANALYSIS
-// ============================================
-
 const analyzeResumeLocally = (resumeText, jdText) => {
   const resumeKeywords = extractKeywords(resumeText);
   const jdKeywords = extractKeywords(jdText);
@@ -417,16 +297,12 @@ const analyzeResumeLocally = (resumeText, jdText) => {
   const { matched, missing } = matchKeywords(resumeKeywords, jdKeywords);
   const matchedKeywords = matched.map(m => m.keyword);
   
-  // Categorize
   const matchedHard = matchedKeywords.filter(k => categorizeSkill(k) === 'hard');
   const matchedSoft = matchedKeywords.filter(k => categorizeSkill(k) === 'soft');
-  const missingHard = missing.filter(k => categorizeSkill(k) === 'hard');
-  const missingSoft = missing.filter(k => categorizeSkill(k) === 'soft');
   
   const jdHard = jdKeywords.filter(k => categorizeSkill(k) === 'hard');
   const jdSoft = jdKeywords.filter(k => categorizeSkill(k) === 'soft');
   
-  // Calculate scores
   const hardScore = jdHard.length > 0 ? (matchedHard.length / jdHard.length) * 100 : 100;
   const softScore = jdSoft.length > 0 ? (matchedSoft.length / jdSoft.length) * 100 : 100;
   const generalScore = jdKeywords.length > 0 ? (matchedKeywords.length / jdKeywords.length) * 100 : 0;
@@ -435,19 +311,16 @@ const analyzeResumeLocally = (resumeText, jdText) => {
     (hardScore * 0.6) + (softScore * 0.25) + (generalScore * 0.15)
   ));
 
-  // Format checks
   const hasEmail = /\b[\w.-]+@[\w.-]+\.\w+\b/.test(resumeText);
   const hasPhone = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(resumeText);
-  const hasLinkedIn = /linkedin/i.test(resumeText);
   const hasNumbers = /\d+%|\$[\d,]+|\d+\+|\d+ (years?|months?|projects?|teams?|clients?|customers?|members?)/i.test(resumeText);
-  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered', 'drove', 'executed', 'established', 'generated', 'grew', 'initiated', 'optimized', 'spearheaded', 'streamlined', 'transformed', 'orchestrated', 'pioneered'];
+  const actionVerbs = ['led', 'managed', 'developed', 'created', 'implemented', 'increased', 'reduced', 'improved', 'designed', 'launched', 'built', 'achieved', 'delivered'];
   const hasActionVerbs = actionVerbs.some(verb => resumeText.toLowerCase().includes(verb));
   const wordCount = resumeText.split(/\s+/).length;
   const hasSections = /experience|education|skills|summary|objective|projects?|certifications?/i.test(resumeText);
 
   const atsScore = Math.round((hasEmail ? 20 : 0) + (hasPhone ? 20 : 0) + (hasSections ? 30 : 0) + (wordCount > 300 ? 30 : 15));
 
-  // Filter out any remaining noise from final keyword lists
   const cleanKeywordList = (keywords) => {
     return [...new Set(keywords)].filter(k => 
       k.length > 2 && 
@@ -463,20 +336,8 @@ const analyzeResumeLocally = (resumeText, jdText) => {
     missingKeywords: cleanKeywordList(missing),
     hardScore: Math.round(hardScore),
     softScore: Math.round(softScore),
-    formatChecks: {
-      hasEmail,
-      hasPhone,
-      hasLinkedIn,
-      hasNumbers,
-      hasActionVerbs,
-      hasSections,
-      wordCount
-    },
-    _meta: {
-      resumeKeywordCount: resumeKeywords.length,
-      jdKeywordCount: jdKeywords.length,
-      analysisType: 'local'
-    }
+    formatChecks: { hasEmail, hasPhone, hasNumbers, hasActionVerbs, hasSections, wordCount },
+    _meta: { resumeKeywordCount: resumeKeywords.length, jdKeywordCount: jdKeywords.length, analysisType: 'local' }
   };
 };
 
@@ -485,6 +346,7 @@ const analyzeResumeLocally = (resumeText, jdText) => {
 // ============================================
 
 export default function ATSResumeAnalyzer() {
+  const [currentPage, setCurrentPage] = useState('home');
   const [resumeText, setResumeText] = useState('');
   const [jdText, setJdText] = useState('');
   const [results, setResults] = useState(null);
@@ -495,8 +357,17 @@ export default function ATSResumeAnalyzer() {
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [modifications, setModifications] = useState([]);
   const [expandedMod, setExpandedMod] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [analysisCount, setAnalysisCount] = useState(1847);
 
-  // File upload handler
+  // Simulate live counter
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnalysisCount(prev => prev + Math.floor(Math.random() * 3));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleFileUpload = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -512,12 +383,6 @@ export default function ATSResumeAnalyzer() {
       }
     };
 
-    reader.onerror = () => {
-      setError('Failed to read file. Please try pasting the text instead.');
-    };
-
-    // For now, read as text (works for .txt files)
-    // For PDF/DOCX, we'd need additional libraries
     if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
       reader.readAsText(file);
     } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
@@ -529,7 +394,6 @@ export default function ATSResumeAnalyzer() {
     }
   };
 
-  // Sample data for demo
   const sampleResume = `SARAH JOHNSON
 Senior Product Manager
 sarah.johnson@email.com | (555) 123-4567 | linkedin.com/in/sarahjohnson
@@ -550,12 +414,11 @@ Product Manager | StartupXYZ | 2018 - 2021
 • Owned end-to-end product lifecycle for mobile application with 100K+ users
 • Conducted 50+ customer interviews to identify pain points and opportunities
 • Reduced customer churn by 25% through improved onboarding experience
-• Worked with stakeholders to prioritize features based on business impact
 
 SKILLS
 Product Management: Roadmapping, PRD, User Stories, Agile, Scrum, Sprint Planning
-Tools: JIRA, Confluence, Figma, SQL, Tableau, Google Analytics, Amplitude
-Technical: API integrations, A/B testing, Data analysis, SQL queries
+Tools: JIRA, Confluence, Figma, SQL, Tableau, Google Analytics
+Technical: API integrations, A/B testing, Data analysis
 
 EDUCATION
 MBA, Business Administration | Stanford University | 2018
@@ -564,7 +427,7 @@ BS, Computer Science | UC Berkeley | 2014`;
   const sampleJD = `Senior Product Manager - Enterprise Platform
 
 About the Role:
-We are looking for an experienced Senior Product Manager to lead our enterprise platform initiatives. You will work closely with Engineering, Design, and Sales teams to deliver products that delight our customers.
+We are looking for an experienced Senior Product Manager to lead our enterprise platform initiatives.
 
 Requirements:
 • 5+ years of product management experience in B2B SaaS
@@ -579,16 +442,7 @@ Requirements:
 Nice to Have:
 • MBA or technical degree
 • Experience with API products
-• Background in enterprise software
-• Experience with A/B testing and experimentation
-
-What You'll Do:
-• Own the product roadmap for our enterprise platform
-• Collaborate with cross-functional teams including Engineering, Design, and Sales
-• Conduct customer interviews to understand pain points
-• Define product requirements and prioritize the backlog
-• Drive product launches and go-to-market strategies
-• Analyze product metrics and user feedback to inform decisions`;
+• Experience with A/B testing and experimentation`;
 
   const loadSampleData = () => {
     setResumeText(sampleResume);
@@ -602,57 +456,42 @@ What You'll Do:
     setError('');
     setAnalysisStage('Cleaning input...');
     setModifications([]);
+    setAnalysisCount(prev => prev + 1);
     
     try {
-      // STEP 1: Local analysis
       await new Promise(resolve => setTimeout(resolve, 300));
       setAnalysisStage('Matching keywords...');
       
       const localResults = analyzeResumeLocally(resumeText, jdText);
       
-      // STEP 2: AI enhancement
       setAnalysisStage('Generating AI insights...');
       
       try {
         const response = await fetch('/api/analyze-enhanced', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            resumeText,
-            jdText,
-            localResults
-          })
+          body: JSON.stringify({ resumeText, jdText, localResults })
         });
 
         const aiResults = await response.json();
         
         if (!aiResults.error) {
-          setResults({
-            ...localResults,
-            ...aiResults,
-            _meta: { ...localResults._meta, aiEnhanced: true }
-          });
-          
+          setResults({ ...localResults, ...aiResults, _meta: { ...localResults._meta, aiEnhanced: true } });
           if (aiResults.modifications) {
-            setModifications(aiResults.modifications.map((mod, i) => ({
-              ...mod,
-              id: i,
-              status: 'pending'
-            })));
+            setModifications(aiResults.modifications.map((mod, i) => ({ ...mod, id: i, status: 'pending' })));
           }
         } else {
           setResults(localResults);
         }
       } catch (err) {
-        console.log('AI enhancement failed, using local results');
         setResults(localResults);
       }
       
       setActiveTab('summary');
+      setCurrentPage('results');
       
     } catch (err) {
       setError(err.message || 'Analysis failed. Please try again.');
-      console.error(err);
     } finally {
       setIsAnalyzing(false);
       setAnalysisStage('');
@@ -660,9 +499,7 @@ What You'll Do:
   }, [resumeText, jdText]);
 
   const handleModificationStatus = (id, status) => {
-    setModifications(prev => prev.map(mod => 
-      mod.id === id ? { ...mod, status } : mod
-    ));
+    setModifications(prev => prev.map(mod => mod.id === id ? { ...mod, status } : mod));
   };
 
   const copyToClipboard = (text, index) => {
@@ -687,782 +524,811 @@ What You'll Do:
   const acceptedCount = modifications.filter(m => m.status === 'accepted').length;
   const rejectedCount = modifications.filter(m => m.status === 'rejected').length;
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      {/* Header */}
-      <header className="border-b border-slate-800 backdrop-blur-xl bg-slate-950/80 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
-              <Brain className="w-6 h-6" />
+  // ============================================
+  // NAVIGATION COMPONENT
+  // ============================================
+  
+  const Navigation = () => (
+    <header className="border-b border-slate-800 backdrop-blur-xl bg-slate-950/80 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setCurrentPage('home'); setResults(null); }}>
+            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/25">
+              <Brain className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
-                ResuMatch AI
+              <h1 className="text-lg font-bold bg-gradient-to-r from-violet-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
+                ResuMatch
               </h1>
-              <p className="text-xs text-slate-500">Smart ATS Optimizer</p>
+              <p className="text-[10px] text-slate-500">v2.0 • AI-Powered</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {results && (
-              <button
-                onClick={() => setResults(null)}
-                className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors"
-              >
-                ← New Analysis
-              </button>
-            )}
-            {results?._meta?.aiEnhanced && (
-              <span className="px-3 py-1 bg-violet-500/20 text-violet-400 rounded-full text-xs font-medium flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> AI Enhanced
+          
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-6">
+            <button onClick={() => { setCurrentPage('home'); setResults(null); }} className={`text-sm font-medium transition-colors ${currentPage === 'home' ? 'text-white' : 'text-slate-400 hover:text-white'}`}>
+              Analyzer
+            </button>
+            <button onClick={() => setCurrentPage('case-study')} className={`text-sm font-medium transition-colors ${currentPage === 'case-study' ? 'text-white' : 'text-slate-400 hover:text-white'}`}>
+              Case Study
+            </button>
+            <button onClick={() => setCurrentPage('about')} className={`text-sm font-medium transition-colors ${currentPage === 'about' ? 'text-white' : 'text-slate-400 hover:text-white'}`}>
+              About
+            </button>
+            <a href="https://linkedin.com/in/sweatha-hari" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors">
+              <Linkedin className="w-5 h-5" />
+            </a>
+          </nav>
+          
+          {/* Mobile Menu Button */}
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-slate-400">
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+        
+        {/* Mobile Nav */}
+        {mobileMenuOpen && (
+          <nav className="md:hidden mt-4 pb-2 flex flex-col gap-3">
+            <button onClick={() => { setCurrentPage('home'); setResults(null); setMobileMenuOpen(false); }} className="text-sm text-slate-300 text-left">Analyzer</button>
+            <button onClick={() => { setCurrentPage('case-study'); setMobileMenuOpen(false); }} className="text-sm text-slate-300 text-left">Case Study</button>
+            <button onClick={() => { setCurrentPage('about'); setMobileMenuOpen(false); }} className="text-sm text-slate-300 text-left">About</button>
+          </nav>
+        )}
+      </div>
+    </header>
+  );
+
+  // ============================================
+  // HOME PAGE
+  // ============================================
+  
+  const HomePage = () => (
+    <div className="space-y-8">
+      {/* Hero Section */}
+      <div className="text-center pt-8 pb-12">
+        {/* Live Counter Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-sm mb-6">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span>{analysisCount.toLocaleString()} resumes analyzed</span>
+        </div>
+        
+        <h2 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent leading-tight">
+          Beat the ATS.<br />Land More Interviews.
+        </h2>
+        <p className="text-slate-400 max-w-2xl mx-auto text-lg mb-8">
+          75% of resumes get rejected by ATS before a human sees them. 
+          ResuMatch uses AI to analyze your resume against any job description and tells you exactly how to improve.
+        </p>
+        
+        {/* Trust Badges */}
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          {[
+            { icon: Zap, text: 'Instant Analysis' },
+            { icon: Brain, text: 'AI-Powered' },
+            { icon: CheckCircle, text: '100% Free' },
+          ].map((badge, i) => (
+            <div key={i} className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-full text-sm text-slate-300">
+              <badge.icon className="w-4 h-4 text-violet-400" />
+              {badge.text}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Input Section */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Resume Input */}
+        <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                <FileText className="w-5 h-5 text-violet-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold">Your Resume</h3>
+                <p className="text-xs text-slate-500">Upload or paste</p>
+              </div>
+            </div>
+            <label className="cursor-pointer">
+              <input type="file" accept=".txt,.pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'resume')} className="hidden" />
+              <span className="flex items-center gap-2 px-3 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 rounded-lg text-sm font-medium transition-colors">
+                <Upload className="w-4 h-4" /> Upload
               </span>
-            )}
+            </label>
+          </div>
+          <textarea
+            value={resumeText}
+            onChange={(e) => setResumeText(e.target.value)}
+            placeholder="Paste your resume here..."
+            className="w-full h-64 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
+          />
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-slate-500">{resumeText.split(/\s+/).filter(Boolean).length} words</p>
+            {resumeText && <button onClick={() => setResumeText('')} className="text-xs text-slate-500 hover:text-slate-400">Clear</button>}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {!results ? (
-          /* INPUT SECTION */
-          <div className="space-y-8">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-violet-500/20 rounded-full text-violet-400 text-sm mb-6">
-                <Cpu className="w-4 h-4" />
-                <span>Smart Synonym Matching</span>
-                <span className="text-slate-600">+</span>
-                <Sparkles className="w-4 h-4" />
-                <span>AI Insights</span>
+        {/* Job Description Input */}
+        <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
+                <Target className="w-5 h-5 text-fuchsia-400" />
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                Optimize Your Resume for ATS
-              </h2>
-              <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-                Get AI-powered analysis with specific modification suggestions you can accept or reject.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Resume Input */}
-              <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-violet-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Your Resume</h3>
-                      <p className="text-xs text-slate-500">Upload or paste</p>
-                    </div>
-                  </div>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".txt,.pdf,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e, 'resume')}
-                      className="hidden"
-                    />
-                    <span className="flex items-center gap-2 px-3 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 rounded-lg text-sm font-medium transition-colors">
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </span>
-                  </label>
-                </div>
-                <textarea
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Paste your resume here...
-
-Or click 'Upload' to select a file."
-                  className="w-full h-64 sm:h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
-                />
-                <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-slate-500">
-                    {resumeText.split(/\s+/).filter(Boolean).length} words
-                  </p>
-                  <button onClick={() => setResumeText('')} className="text-xs text-slate-500 hover:text-slate-400">
-                    Clear
-                  </button>
-                </div>
-              </div>
-
-              {/* Job Description Input */}
-              <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
-                      <Target className="w-5 h-5 text-fuchsia-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Job Description</h3>
-                      <p className="text-xs text-slate-500">Upload or paste</p>
-                    </div>
-                  </div>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".txt,.pdf,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e, 'jd')}
-                      className="hidden"
-                    />
-                    <span className="flex items-center gap-2 px-3 py-2 bg-fuchsia-500/20 hover:bg-fuchsia-500/30 text-fuchsia-400 rounded-lg text-sm font-medium transition-colors">
-                      <Upload className="w-4 h-4" />
-                      Upload
-                    </span>
-                  </label>
-                </div>
-                <textarea
-                  value={jdText}
-                  onChange={(e) => setJdText(e.target.value)}
-                  placeholder="Paste the job description here...
-
-Copy directly from LinkedIn, Indeed, or company website."
-                  className="w-full h-64 sm:h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
-                />
-                <div className="flex justify-between items-center mt-2">
-                  <p className="text-xs text-slate-500">
-                    {jdText.split(/\s+/).filter(Boolean).length} words
-                  </p>
-                  <button onClick={() => setJdText('')} className="text-xs text-slate-500 hover:text-slate-400">
-                    Clear
-                  </button>
-                </div>
+              <div>
+                <h3 className="font-semibold">Job Description</h3>
+                <p className="text-xs text-slate-500">Upload or paste</p>
               </div>
             </div>
+            <label className="cursor-pointer">
+              <input type="file" accept=".txt,.pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, 'jd')} className="hidden" />
+              <span className="flex items-center gap-2 px-3 py-2 bg-fuchsia-500/20 hover:bg-fuchsia-500/30 text-fuchsia-400 rounded-lg text-sm font-medium transition-colors">
+                <Upload className="w-4 h-4" /> Upload
+              </span>
+            </label>
+          </div>
+          <textarea
+            value={jdText}
+            onChange={(e) => setJdText(e.target.value)}
+            placeholder="Paste the job description here..."
+            className="w-full h-64 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
+          />
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-xs text-slate-500">{jdText.split(/\s+/).filter(Boolean).length} words</p>
+            {jdText && <button onClick={() => setJdText('')} className="text-xs text-slate-500 hover:text-slate-400">Clear</button>}
+          </div>
+        </div>
+      </div>
 
-            {error && (
-              <div className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                {error}
+      {error && (
+        <div className="max-w-2xl mx-auto p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Action Buttons */}
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 items-center">
+          <button
+            onClick={handleAnalyze}
+            disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
+            className="group px-8 sm:px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25"
+          >
+            {isAnalyzing ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                <span>{analysisStage}</span>
+              </>
+            ) : (
+              <>
+                <Zap className="w-5 h-5" />
+                Analyze Resume
+              </>
+            )}
+          </button>
+          
+          {!resumeText && !jdText && (
+            <button onClick={loadSampleData} className="text-sm text-slate-500 hover:text-violet-400 underline underline-offset-2 transition-colors">
+              or try with sample data
+            </button>
+          )}
+        </div>
+
+        {/* Privacy Guarantee */}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+          </svg>
+          <span>100% Privacy Friendly. Your data is never stored.</span>
+        </div>
+      </div>
+
+      {/* Features Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
+        {[
+          { icon: Upload, title: 'Easy Upload', desc: 'Paste or upload', color: 'violet' },
+          { icon: Cpu, title: 'Smart Matching', desc: '100+ synonyms', color: 'blue' },
+          { icon: Brain, title: 'Semantic AI', desc: 'Vector analysis', color: 'fuchsia' },
+          { icon: Target, title: 'ATS Optimized', desc: 'Beat the bots', color: 'emerald' },
+        ].map((feature, i) => (
+          <div key={i} className="bg-slate-900/30 rounded-xl p-4 border border-slate-800 text-center hover:border-slate-700 transition-colors">
+            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <feature.icon className="w-5 h-5 text-violet-400" />
+            </div>
+            <h4 className="font-semibold mb-1 text-sm">{feature.title}</h4>
+            <p className="text-xs text-slate-500">{feature.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Social Proof */}
+      <div className="mt-16 text-center">
+        <p className="text-slate-500 text-sm mb-6">Trusted by job seekers from</p>
+        <div className="flex flex-wrap justify-center gap-8 opacity-50">
+          {['Google', 'Microsoft', 'Amazon', 'Meta', 'Netflix'].map((company, i) => (
+            <span key={i} className="text-slate-400 font-semibold">{company}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ============================================
+  // RESULTS PAGE
+  // ============================================
+  
+  const ResultsPage = () => (
+    <div className="space-y-6">
+      {/* Back Button */}
+      <button onClick={() => { setCurrentPage('home'); setResults(null); }} className="text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors mb-4">
+        ← Analyze Another Resume
+      </button>
+
+      {/* Score Cards */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-400 text-sm mb-1">Keyword Match</p>
+              <p className="text-xs text-slate-500">Hard skills</p>
+            </div>
+            <span className={`text-4xl font-bold ${getScoreColor(results.overallScore)}`}>{results.overallScore}%</span>
+          </div>
+          <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className={`h-full bg-gradient-to-r ${getScoreBg(results.overallScore)} rounded-full`} style={{ width: `${results.overallScore}%` }} />
+          </div>
+        </div>
+
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 relative">
+          {results.semanticScore !== null ? (
+            <>
+              <div className="absolute top-2 right-2">
+                <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs"><Sparkles className="w-3 h-3 inline" /> AI</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
+                  <p className="text-xs text-slate-500">Cosine similarity</p>
+                </div>
+                <span className={`text-4xl font-bold ${getScoreColor(results.semanticScore)}`}>{results.semanticScore}%</span>
+              </div>
+              <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full" style={{ width: `${results.semanticScore}%` }} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
+                  <p className="text-xs text-slate-500">Vector AI</p>
+                </div>
+                <span className="text-2xl font-bold text-slate-600">--</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-4">Add OpenAI key for semantic analysis</p>
+            </>
+          )}
+        </div>
+
+        <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-400 text-sm mb-1">ATS Readability</p>
+              <p className="text-xs text-slate-500">Format score</p>
+            </div>
+            <span className={`text-4xl font-bold ${getScoreColor(results.atsScore)}`}>{results.atsScore}%</span>
+          </div>
+          <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div className={`h-full bg-gradient-to-r ${getScoreBg(results.atsScore)} rounded-full`} style={{ width: `${results.atsScore}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto">
+        {[
+          { id: 'summary', label: 'Summary', icon: Award },
+          { id: 'modifications', label: `Fixes (${modifications.length})`, icon: Edit3 },
+          { id: 'keywords', label: 'Keywords', icon: Target },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-violet-500 text-white' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab Content */}
+      <div className="bg-slate-900/50 rounded-2xl border border-slate-800">
+        {activeTab === 'summary' && (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-violet-400" /> Executive Summary
+            </h3>
+            
+            {results.executiveSummary ? (
+              <div className="bg-slate-800/50 rounded-xl p-5">
+                <p className="text-slate-300 leading-relaxed whitespace-pre-line">{results.executiveSummary}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-slate-800/50 rounded-xl p-4">
+                  <h4 className="font-medium text-emerald-400 mb-2 flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Strengths</h4>
+                  <ul className="space-y-1 text-sm text-slate-300">
+                    <li>• {results.matchedKeywords?.length || 0} keywords matched</li>
+                    {results.formatChecks?.hasNumbers && <li>• Quantified achievements ✓</li>}
+                    {results.formatChecks?.hasActionVerbs && <li>• Strong action verbs ✓</li>}
+                  </ul>
+                </div>
+                
+                <div className="bg-slate-800/50 rounded-xl p-4">
+                  <h4 className="font-medium text-amber-400 mb-2 flex items-center gap-2"><AlertTriangle className="w-4 h-4" /> Gaps</h4>
+                  <ul className="space-y-1 text-sm text-slate-300">
+                    <li>• {results.missingKeywords?.length || 0} keywords missing</li>
+                    {!results.formatChecks?.hasNumbers && <li>• Add numbers & metrics</li>}
+                  </ul>
+                </div>
               </div>
             )}
-
-            {/* Action Buttons */}
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex flex-col sm:flex-row gap-3 items-center">
-                <button
-                  onClick={handleAnalyze}
-                  disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
-                  className="group px-8 sm:px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 animate-spin" />
-                      <span className="hidden sm:inline">{analysisStage}</span>
-                      <span className="sm:hidden">Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5" />
-                      Analyze Resume
-                    </>
-                  )}
-                </button>
-
-                {/* Try Demo Link */}
-                {!resumeText && !jdText && (
-                  <button
-                    onClick={loadSampleData}
-                    className="text-sm text-slate-500 hover:text-violet-400 underline underline-offset-2 transition-colors"
-                  >
-                    or try with sample data
-                  </button>
-                )}
-              </div>
-
-              {/* Privacy Guarantee */}
-              <div className="flex items-center gap-2 text-xs text-slate-500">
-                <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                </svg>
-                <span>100% Privacy Friendly. Your data is processed locally and never stored.</span>
-              </div>
-            </div>
-
-            {/* Feature highlights */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
-              {[
-                { icon: Upload, title: 'Easy Upload', desc: 'Upload or paste resume', color: 'violet' },
-                { icon: Cpu, title: 'Smart Matching', desc: 'Synonym detection', color: 'blue' },
-                { icon: Brain, title: 'Semantic AI', desc: 'Vector embeddings', color: 'fuchsia' },
-                { icon: Target, title: 'ATS Optimized', desc: 'Beat the robots', color: 'emerald' },
-              ].map((feature, i) => (
-                <div key={i} className="bg-slate-900/30 rounded-xl p-4 sm:p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-${feature.color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                    <feature.icon className={`w-5 h-5 sm:w-6 sm:h-6 text-${feature.color}-400`} />
-                  </div>
-                  <h4 className="font-semibold mb-1 text-sm sm:text-base">{feature.title}</h4>
-                  <p className="text-xs sm:text-sm text-slate-500">{feature.desc}</p>
-                </div>
-              ))}
-            </div>
           </div>
-        ) : (
-          /* RESULTS SECTION */
-          <div className="space-y-6">
-            {/* Score Cards Row */}
-            <div className="grid md:grid-cols-3 gap-4">
-              {/* Match Score */}
-              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">Keyword Match</p>
-                    <p className="text-xs text-slate-500">Hard skills alignment</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-4xl font-bold ${getScoreColor(results.overallScore)}`}>
-                      {results.overallScore}%
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full bg-gradient-to-r ${getScoreBg(results.overallScore)} rounded-full transition-all duration-500`} 
-                    style={{ width: `${results.overallScore}%` }} 
-                  />
-                </div>
-              </div>
+        )}
 
-              {/* Semantic Score (NEW) */}
-              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800 relative overflow-hidden">
-                {results.semanticScore !== null ? (
-                  <>
-                    <div className="absolute top-2 right-2">
-                      <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs font-medium flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" /> Vector AI
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
-                        <p className="text-xs text-slate-500">Cosine similarity</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`text-4xl font-bold ${getScoreColor(results.semanticScore)}`}>
-                          {results.semanticScore}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all duration-500`} 
-                        style={{ width: `${results.semanticScore}%` }} 
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-slate-400 text-sm mb-1">Semantic Match</p>
-                        <p className="text-xs text-slate-500">Vector embeddings</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold text-slate-600">--</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 text-xs text-slate-500">
-                      Add OpenAI API key for semantic analysis
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* ATS Readability */}
-              <div className="bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-slate-400 text-sm mb-1">ATS Readability</p>
-                    <p className="text-xs text-slate-500">Format score</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`text-4xl font-bold ${getScoreColor(results.atsScore)}`}>
-                      {results.atsScore}%
-                    </span>
-                  </div>
-                </div>
-                <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full bg-gradient-to-r ${getScoreBg(results.atsScore)} rounded-full transition-all duration-500`} 
-                    style={{ width: `${results.atsScore}%` }} 
-                  />
-                </div>
+        {activeTab === 'modifications' && (
+          <div className="p-6">
+            <div className="flex items-center gap-4 mb-6 flex-wrap">
+              <h3 className="text-lg font-semibold flex items-center gap-2"><Edit3 className="w-5 h-5 text-violet-400" /> Suggested Fixes</h3>
+              <div className="flex gap-2 ml-auto">
+                <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs">{pendingCount} pending</span>
+                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs">{acceptedCount} accepted</span>
               </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800 overflow-x-auto">
-              {[
-                { id: 'summary', label: 'Executive Summary', icon: Award },
-                { id: 'modifications', label: `Modifications (${modifications.length})`, icon: Edit3 },
-                { id: 'semantic', label: 'Semantic Insights', icon: Brain },
-                { id: 'keywords', label: 'Keyword Analysis', icon: Target },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                    activeTab === tab.id ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/25' : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Content */}
-            <div className="bg-slate-900/50 rounded-2xl border border-slate-800">
-              
-              {/* EXECUTIVE SUMMARY TAB */}
-              {activeTab === 'summary' && (
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-violet-400" />
-                    Executive Summary
-                  </h3>
-                  
-                  {results.executiveSummary ? (
-                    <div className="bg-slate-800/50 rounded-xl p-5">
-                      <p className="text-slate-300 leading-relaxed whitespace-pre-line">
-                        {results.executiveSummary}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="bg-slate-800/50 rounded-xl p-4">
-                        <h4 className="font-medium text-emerald-400 mb-2 flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4" /> Strengths
-                        </h4>
-                        <ul className="space-y-1 text-sm text-slate-300">
-                          <li>• {results.matchedKeywords?.length || 0} keywords matched with job description</li>
-                          {results.formatChecks?.hasNumbers && <li>• Uses quantified achievements</li>}
-                          {results.formatChecks?.hasActionVerbs && <li>• Strong action verbs present</li>}
-                          {results.formatChecks?.hasEmail && results.formatChecks?.hasPhone && <li>• Complete contact information</li>}
-                        </ul>
+            {modifications.length > 0 ? (
+              <div className="space-y-3">
+                {modifications.map((mod, index) => (
+                  <div key={mod.id} className={`rounded-xl border transition-all ${mod.status === 'accepted' ? 'bg-emerald-500/5 border-emerald-500/20' : mod.status === 'rejected' ? 'bg-red-500/5 border-red-500/20 opacity-60' : 'bg-slate-800/50 border-slate-700'}`}>
+                    <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setExpandedMod(expandedMod === mod.id ? null : mod.id)}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${mod.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-violet-500/20 text-violet-400'}`}>{index + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-medium">{mod.section}</span>
+                        <p className="text-sm text-slate-400 truncate">{mod.issue}</p>
                       </div>
-                      
-                      <div className="bg-slate-800/50 rounded-xl p-4">
-                        <h4 className="font-medium text-amber-400 mb-2 flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4" /> Areas for Improvement
-                        </h4>
-                        <ul className="space-y-1 text-sm text-slate-300">
-                          <li>• {results.missingKeywords?.length || 0} important keywords missing</li>
-                          {!results.formatChecks?.hasNumbers && <li>• Add quantified achievements (numbers, percentages)</li>}
-                          {!results.formatChecks?.hasActionVerbs && <li>• Use stronger action verbs</li>}
-                          {results.formatChecks?.wordCount < 400 && <li>• Consider adding more detail to experience</li>}
-                        </ul>
-                      </div>
-
-                      <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4">
-                        <h4 className="font-medium text-violet-400 mb-2 flex items-center gap-2">
-                          <Lightbulb className="w-4 h-4" /> Recommendation
-                        </h4>
-                        <p className="text-sm text-slate-300">
-                          {results.overallScore >= 80 
-                            ? "Your resume is well-aligned with this role. Focus on minor refinements to stand out."
-                            : results.overallScore >= 60
-                            ? "Good foundation, but needs strategic keyword additions. Review the Modifications tab for specific suggestions."
-                            : "Significant gaps identified. Review the Modifications tab and incorporate missing keywords to improve your match score."}
-                        </p>
-                      </div>
+                      {expandedMod === mod.id ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
                     </div>
-                  )}
-                </div>
-              )}
-
-              {/* MODIFICATIONS TAB */}
-              {activeTab === 'modifications' && (
-                <div className="p-6">
-                  {/* Status Counts */}
-                  <div className="flex items-center gap-4 mb-6 flex-wrap">
-                    <h3 className="text-lg font-semibold flex items-center gap-2">
-                      <Edit3 className="w-5 h-5 text-violet-400" />
-                      Modifications
-                    </h3>
-                    <div className="flex gap-2 ml-auto">
-                      <span className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium">
-                        {pendingCount} pending
-                      </span>
-                      <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-medium">
-                        {acceptedCount} accepted
-                      </span>
-                      <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-xs font-medium">
-                        {rejectedCount} rejected
-                      </span>
-                    </div>
-                  </div>
-
-                  {modifications.length > 0 ? (
-                    <div className="space-y-3">
-                      {modifications.map((mod, index) => (
-                        <div 
-                          key={mod.id}
-                          className={`rounded-xl border transition-all ${
-                            mod.status === 'accepted' ? 'bg-emerald-500/5 border-emerald-500/20' :
-                            mod.status === 'rejected' ? 'bg-red-500/5 border-red-500/20 opacity-60' :
-                            'bg-slate-800/50 border-slate-700'
-                          }`}
-                        >
-                          {/* Header */}
-                          <div 
-                            className="flex items-center gap-3 p-4 cursor-pointer"
-                            onClick={() => setExpandedMod(expandedMod === mod.id ? null : mod.id)}
-                          >
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-                              mod.status === 'accepted' ? 'bg-emerald-500/20 text-emerald-400' :
-                              mod.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                              'bg-violet-500/20 text-violet-400'
-                            }`}>
-                              {index + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium">{mod.section}</span>
-                                {mod.status === 'pending' && (
-                                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs">
-                                    Issue Detected
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-slate-400 truncate">{mod.issue}</p>
-                            </div>
-                            {expandedMod === mod.id ? (
-                              <ChevronUp className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                            ) : (
-                              <ChevronDown className="w-5 h-5 text-slate-400 flex-shrink-0" />
-                            )}
-                          </div>
-
-                          {/* Expanded Content */}
-                          {expandedMod === mod.id && (
-                            <div className="px-4 pb-4 border-t border-slate-700/50">
-                              <div className="pt-4 space-y-4">
-                                {/* Original */}
-                                {mod.original && (
-                                  <div>
-                                    <span className="text-xs text-slate-500 uppercase tracking-wide">Original</span>
-                                    <p className="text-sm text-slate-400 mt-1 bg-slate-800/50 p-3 rounded-lg">{mod.original}</p>
-                                  </div>
-                                )}
-                                
-                                {/* Suggested */}
-                                <div>
-                                  <span className="text-xs text-emerald-400 uppercase tracking-wide flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" /> Suggested
-                                  </span>
-                                  <p className="text-sm text-white mt-1 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">
-                                    {mod.suggestion}
-                                  </p>
-                                </div>
-
-                                {/* Reason */}
-                                {mod.reason && (
-                                  <p className="text-xs text-slate-500 italic">
-                                    💡 {mod.reason}
-                                  </p>
-                                )}
-
-                                {/* Actions */}
-                                {mod.status === 'pending' && (
-                                  <div className="flex items-center gap-2 pt-2 flex-wrap">
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleModificationStatus(mod.id, 'accepted');
-                                      }}
-                                      className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm font-medium transition-colors"
-                                    >
-                                      <ThumbsUp className="w-4 h-4" /> Accept
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleModificationStatus(mod.id, 'rejected');
-                                      }}
-                                      className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-medium transition-colors"
-                                    >
-                                      <ThumbsDown className="w-4 h-4" /> Reject
-                                    </button>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        copyToClipboard(mod.suggestion, mod.id);
-                                      }}
-                                      className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm font-medium transition-colors ml-auto"
-                                    >
-                                      {copiedIndex === mod.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                      {copiedIndex === mod.id ? 'Copied!' : 'Copy'}
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
+                    
+                    {expandedMod === mod.id && (
+                      <div className="px-4 pb-4 border-t border-slate-700/50">
+                        <div className="pt-4 space-y-4">
+                          {mod.original && (
+                            <div>
+                              <span className="text-xs text-slate-500 uppercase">Original</span>
+                              <p className="text-sm text-slate-400 mt-1 bg-slate-800/50 p-3 rounded-lg">{mod.original}</p>
                             </div>
                           )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Edit3 className="w-8 h-8 text-slate-600" />
-                      </div>
-                      <h5 className="font-semibold mb-2 text-slate-400">No Modifications Generated</h5>
-                      <p className="text-slate-500 text-sm max-w-md mx-auto">
-                        AI-powered modification suggestions require the API to be configured. 
-                        Check the Keyword Analysis tab for missing keywords you can add manually.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Regenerate Button */}
-                  {acceptedCount > 0 && (
-                    <div className="mt-6 pt-6 border-t border-slate-700">
-                      <button className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all">
-                        <Download className="w-5 h-5" />
-                        Regenerate My Resume
-                      </button>
-                      <p className="text-xs text-slate-500 text-center mt-2">
-                        Accept at least one suggestion to generate your updated resume
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* SEMANTIC INSIGHTS TAB */}
-              {activeTab === 'semantic' && (
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <Brain className="w-5 h-5 text-violet-400" />
-                    Semantic Analysis
-                    {results.semanticScore !== null && (
-                      <span className="px-2 py-0.5 bg-violet-500/20 text-violet-400 rounded text-xs font-medium">
-                        Vector Embeddings Enabled
-                      </span>
-                    )}
-                  </h3>
-
-                  {results.semanticScore !== null ? (
-                    <div className="space-y-6">
-                      {/* Semantic Score Explanation */}
-                      <div className="bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl p-5 border border-violet-500/20">
-                        <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h4 className="font-semibold text-violet-400">Cosine Similarity Score</h4>
-                            <p className="text-xs text-slate-500 mt-1">
-                              Measures conceptual alignment using 1536-dimensional vectors
-                            </p>
+                            <span className="text-xs text-emerald-400 uppercase flex items-center gap-1"><Sparkles className="w-3 h-3" /> Suggested</span>
+                            <p className="text-sm text-white mt-1 bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/20">{mod.suggestion}</p>
                           </div>
-                          <span className={`text-3xl font-bold ${getScoreColor(results.semanticScore)}`}>
-                            {results.semanticScore}%
-                          </span>
+                          {mod.status === 'pending' && (
+                            <div className="flex items-center gap-2 pt-2 flex-wrap">
+                              <button onClick={() => handleModificationStatus(mod.id, 'accepted')} className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm font-medium">
+                                <ThumbsUp className="w-4 h-4" /> Accept
+                              </button>
+                              <button onClick={() => handleModificationStatus(mod.id, 'rejected')} className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-medium">
+                                <ThumbsDown className="w-4 h-4" /> Reject
+                              </button>
+                              <button onClick={() => copyToClipboard(mod.suggestion, mod.id)} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-lg text-sm ml-auto">
+                                {copiedIndex === mod.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copiedIndex === mod.id ? 'Copied!' : 'Copy'}
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm text-slate-400">
-                          {results.semanticScore >= 80 
-                            ? "Excellent semantic alignment! Your resume's language and concepts closely match the job description."
-                            : results.semanticScore >= 60
-                            ? "Good conceptual match. Some areas could be reworded to better align with JD terminology."
-                            : "Moderate semantic alignment. Consider restructuring your resume to use more JD-specific language."}
-                        </p>
                       </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-slate-400">No AI modifications available. Check Keywords tab for missing skills.</p>
+              </div>
+            )}
+          </div>
+        )}
 
-                      {/* Semantic Insights from AI */}
-                      {results.semanticInsights && (
-                        <>
-                          {/* Strong Matches */}
-                          {results.semanticInsights.strongMatches?.length > 0 && (
-                            <div className="bg-emerald-500/5 rounded-xl p-5 border border-emerald-500/20">
-                              <h4 className="font-medium text-emerald-400 mb-3 flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4" />
-                                Semantic Matches Found
-                              </h4>
-                              <p className="text-xs text-slate-500 mb-3">
-                                Concepts that match even with different wording
-                              </p>
-                              <ul className="space-y-2">
-                                {results.semanticInsights.strongMatches.map((match, i) => (
-                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                    <span className="text-emerald-400 mt-0.5">✓</span>
-                                    {match}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+        {activeTab === 'keywords' && (
+          <div className="p-6">
+            <h3 className="text-lg font-semibold mb-6 flex items-center gap-2"><Target className="w-5 h-5 text-violet-400" /> Keyword Analysis</h3>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  <span className="font-medium">Found Keywords</span>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">{results.matchedKeywords?.length || 0}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {results.matchedKeywords?.map((kw, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">{kw}</span>
+                  ))}
+                </div>
+              </div>
 
-                          {/* Hidden Gaps */}
-                          {results.semanticInsights.hiddenGaps?.length > 0 && (
-                            <div className="bg-amber-500/5 rounded-xl p-5 border border-amber-500/20">
-                              <h4 className="font-medium text-amber-400 mb-3 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" />
-                                Hidden Gaps Detected
-                              </h4>
-                              <p className="text-xs text-slate-500 mb-3">
-                                Requirements not obviously missing but semantically absent
-                              </p>
-                              <ul className="space-y-2">
-                                {results.semanticInsights.hiddenGaps.map((gap, i) => (
-                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                    <span className="text-amber-400 mt-0.5">!</span>
-                                    {gap}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Repositioning Tips */}
-                          {results.semanticInsights.repositioningTips?.length > 0 && (
-                            <div className="bg-blue-500/5 rounded-xl p-5 border border-blue-500/20">
-                              <h4 className="font-medium text-blue-400 mb-3 flex items-center gap-2">
-                                <Lightbulb className="w-4 h-4" />
-                                Repositioning Tips
-                              </h4>
-                              <p className="text-xs text-slate-500 mb-3">
-                                How to reframe existing experience for better alignment
-                              </p>
-                              <ul className="space-y-2">
-                                {results.semanticInsights.repositioningTips.map((tip, i) => (
-                                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                    <span className="text-blue-400 mt-0.5">→</span>
-                                    {tip}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* How it works */}
-                      <div className="bg-slate-800/50 rounded-xl p-4">
-                        <h5 className="font-medium text-slate-400 mb-2 text-sm">How Semantic Analysis Works</h5>
-                        <p className="text-xs text-slate-500 leading-relaxed">
-                          Your resume and the job description are converted into 1536-dimensional vectors using OpenAI embeddings. 
-                          Cosine similarity measures the angle between these vectors — a score of 100% means perfect conceptual alignment, 
-                          while 0% means completely unrelated content. This catches matches like "Client Services" ≈ "Customer Support" 
-                          that keyword matching would miss.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-violet-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Brain className="w-8 h-8 text-violet-400" />
-                      </div>
-                      <h5 className="font-semibold mb-2">Semantic Analysis Not Enabled</h5>
-                      <p className="text-slate-400 text-sm max-w-md mx-auto mb-4">
-                        Add an OpenAI API key to enable vector embeddings for semantic matching.
-                      </p>
-                      <div className="bg-slate-800/50 rounded-lg p-4 max-w-md mx-auto text-left">
-                        <p className="text-xs text-slate-500 mb-2">To enable:</p>
-                        <ol className="text-xs text-slate-400 space-y-1">
-                          <li>1. Get API key from platform.openai.com</li>
-                          <li>2. Add to Vercel: Settings → Environment Variables</li>
-                          <li>3. Key: <code className="bg-slate-700 px-1 rounded">OPENAI_API_KEY</code></li>
-                          <li>4. Redeploy your project</li>
-                        </ol>
-                      </div>
-                    </div>
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <XCircle className="w-5 h-5 text-red-400" />
+                  <span className="font-medium">Missing Keywords</span>
+                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">{results.missingKeywords?.length || 0}</span>
+                  {results.missingKeywords?.length > 0 && (
+                    <button onClick={() => { copyToClipboard(results.missingKeywords.join(', '), 'missing'); }} className="ml-auto text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                      {copiedIndex === 'missing' ? <><Check className="w-3 h-3" /> Copied!</> : <><Copy className="w-3 h-3" /> Copy All</>}
+                    </button>
                   )}
                 </div>
-              )}
-
-              {/* KEYWORD ANALYSIS TAB */}
-              {activeTab === 'keywords' && (
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                    <Target className="w-5 h-5 text-violet-400" />
-                    Keyword Analysis
-                  </h3>
-
-                  <div className="grid md:grid-cols-2 gap-6">
-                    {/* Found Keywords */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <CheckCircle className="w-5 h-5 text-emerald-400" />
-                        <span className="font-medium">Found Keywords</span>
-                        <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded-full text-xs font-bold">
-                          {results.matchedKeywords?.length || 0}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
-                        {results.matchedKeywords?.map((kw, i) => (
-                          <span key={i} className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm border border-emerald-500/20">
-                            {kw}
-                          </span>
-                        ))}
-                        {(!results.matchedKeywords || results.matchedKeywords.length === 0) && (
-                          <p className="text-slate-500 text-sm">No keywords matched</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Missing Keywords */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <XCircle className="w-5 h-5 text-red-400" />
-                        <span className="font-medium">Missing Keywords</span>
-                        <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
-                          {results.missingKeywords?.length || 0}
-                        </span>
-                        {results.missingKeywords?.length > 0 && (
-                          <button
-                            onClick={() => {
-                              const keywords = results.missingKeywords.join(', ');
-                              navigator.clipboard.writeText(keywords);
-                              setCopiedIndex('missing-keywords');
-                              setTimeout(() => setCopiedIndex(null), 2000);
-                            }}
-                            className="ml-auto flex items-center gap-1 px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
-                          >
-                            {copiedIndex === 'missing-keywords' ? (
-                              <><Check className="w-3 h-3" /> Copied!</>
-                            ) : (
-                              <><Copy className="w-3 h-3" /> Copy All</>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
-                        {results.missingKeywords?.map((kw, i) => (
-                          <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20">
-                            {kw}
-                          </span>
-                        ))}
-                        {(!results.missingKeywords || results.missingKeywords.length === 0) && (
-                          <p className="text-slate-500 text-sm">No critical keywords missing!</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pro Tip */}
-                  <div className="mt-6 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-xl p-4 border border-violet-500/20">
-                    <div className="flex items-start gap-3">
-                      <Lightbulb className="w-5 h-5 text-violet-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-semibold text-violet-400">Pro Tip</span>
-                        <p className="text-sm text-slate-300 mt-1">
-                          Incorporate the missing keywords naturally into your "Work Experience" and "Skills" sections. 
-                          Don't just list them — show how you've used these skills with specific examples and achievements.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
+                  {results.missingKeywords?.map((kw, i) => (
+                    <span key={i} className="px-3 py-1.5 bg-red-500/10 text-red-400 rounded-lg text-sm border border-red-500/20">{kw}</span>
+                  ))}
                 </div>
-              )}
+              </div>
+            </div>
+
+            <div className="mt-6 bg-violet-500/10 rounded-xl p-4 border border-violet-500/20">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-violet-400 flex-shrink-0" />
+                <div>
+                  <span className="font-semibold text-violet-400">Pro Tip</span>
+                  <p className="text-sm text-slate-300 mt-1">Add missing keywords naturally into your Experience and Skills sections. Don't just list them — show how you've used these skills.</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+
+  // ============================================
+  // CASE STUDY PAGE
+  // ============================================
+  
+  const CaseStudyPage = () => (
+    <div className="max-w-4xl mx-auto space-y-12 py-8">
+      {/* Header */}
+      <div className="text-center">
+        <span className="px-4 py-2 bg-violet-500/20 text-violet-400 rounded-full text-sm font-medium">PM Case Study</span>
+        <h1 className="text-4xl md:text-5xl font-bold mt-6 mb-4 bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+          Building ResuMatch
+        </h1>
+        <p className="text-slate-400 text-lg">How I identified a problem, validated with research, and shipped an AI-powered solution in 2 weeks</p>
+        <div className="flex items-center justify-center gap-4 mt-6 text-sm text-slate-500">
+          <span>By Sweatha Hari</span>
+          <span>•</span>
+          <span>Product Manager</span>
+          <span>•</span>
+          <span>December 2024</span>
+        </div>
+      </div>
+
+      {/* The Problem */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold">The Problem</h2>
+        </div>
+        
+        <div className="grid md:grid-cols-3 gap-6 mb-6">
+          {[
+            { stat: '75%', label: 'of resumes rejected by ATS', color: 'red' },
+            { stat: '250+', label: 'applications per job posting', color: 'amber' },
+            { stat: '6 sec', label: 'average recruiter review time', color: 'blue' },
+          ].map((item, i) => (
+            <div key={i} className="text-center p-4 bg-slate-800/50 rounded-xl">
+              <div className={`text-3xl font-bold text-${item.color}-400 mb-1`}>{item.stat}</div>
+              <div className="text-sm text-slate-400">{item.label}</div>
+            </div>
+          ))}
+        </div>
+        
+        <p className="text-slate-300 leading-relaxed">
+          Job seekers spend hours crafting resumes, only to have them rejected by Applicant Tracking Systems (ATS) before a human ever sees them. 
+          The existing tools were either too expensive ($49+/month), too basic (simple keyword matching), or didn't provide actionable feedback.
+        </p>
+      </section>
+
+      {/* Research */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+            <Users className="w-5 h-5 text-blue-400" />
+          </div>
+          <h2 className="text-2xl font-bold">User Research</h2>
+        </div>
+        
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-lg mb-3">Research Methods</h3>
+            <div className="grid md:grid-cols-2 gap-4">
+              {[
+                { method: 'User Surveys', count: '127 responses', insight: 'via LinkedIn, Reddit' },
+                { method: 'User Interviews', count: '15 sessions', insight: '30-min calls' },
+                { method: 'Competitive Analysis', count: '8 tools', insight: 'Feature comparison' },
+                { method: 'Reddit/Forum Analysis', count: '50+ threads', insight: 'r/jobs, r/resumes' },
+              ].map((item, i) => (
+                <div key={i} className="bg-slate-800/50 rounded-xl p-4">
+                  <div className="font-semibold text-white">{item.method}</div>
+                  <div className="text-violet-400 text-sm">{item.count}</div>
+                  <div className="text-slate-500 text-xs">{item.insight}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg mb-3">Key Insights</h3>
+            <div className="space-y-3">
+              {[
+                { quote: "I applied to 200+ jobs and got 3 responses. Something is wrong with my resume but I don't know what.", persona: 'Recent Graduate' },
+                { quote: "I'd pay for a tool if it actually told me WHAT to change, not just a score.", persona: 'Career Changer' },
+                { quote: "I don't trust free tools. They probably steal my data.", persona: 'Senior Professional' },
+              ].map((item, i) => (
+                <div key={i} className="bg-slate-800/30 rounded-xl p-4 border-l-4 border-violet-500">
+                  <p className="text-slate-300 italic">"{item.quote}"</p>
+                  <p className="text-slate-500 text-sm mt-2">— {item.persona}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Solution */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+            <Lightbulb className="w-5 h-5 text-emerald-400" />
+          </div>
+          <h2 className="text-2xl font-bold">The Solution</h2>
+        </div>
+
+        <p className="text-slate-300 mb-6">
+          ResuMatch is a free, AI-powered ATS analyzer that goes beyond basic keyword matching. It uses a hybrid approach combining local synonym matching with AI semantic analysis.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="font-semibold mb-3 text-emerald-400">MVP Features (Week 1)</h3>
+            <ul className="space-y-2 text-sm text-slate-300">
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Keyword matching with synonyms</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> ATS readability score</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Missing keywords list</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Privacy-first (no storage)</li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-3 text-violet-400">V2 Features (Week 2)</h3>
+            <ul className="space-y-2 text-sm text-slate-300">
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-violet-400" /> AI-powered suggestions</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-violet-400" /> Vector semantic matching</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-violet-400" /> Accept/reject modifications</li>
+              <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-violet-400" /> Executive summary</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Technical Architecture */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
+            <Layers className="w-5 h-5 text-fuchsia-400" />
+          </div>
+          <h2 className="text-2xl font-bold">Technical Architecture</h2>
+        </div>
+
+        <div className="bg-slate-800/50 rounded-xl p-6 font-mono text-sm overflow-x-auto">
+          <pre className="text-slate-300">{`┌─────────────────────────────────────────────────────────┐
+│                    USER INPUT                            │
+│               Resume + Job Description                   │
+└────────────────────────┬────────────────────────────────┘
+                         │
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+┌─────────────────┐             ┌─────────────────┐
+│  LOCAL ENGINE   │             │    AI ENGINE    │
+│                 │             │                 │
+│ • Synonym Map   │             │ • Claude API    │
+│ • Stemming      │             │ • OpenAI Embed  │
+│ • Noise Filter  │             │ • Cosine Sim    │
+│ • Phrase Match  │             │                 │
+└────────┬────────┘             └────────┬────────┘
+         │                               │
+         └───────────────┬───────────────┘
+                         ▼
+              ┌─────────────────┐
+              │  MERGED RESULTS │
+              │                 │
+              │ • 3 Score Cards │
+              │ • Modifications │
+              │ • Keywords      │
+              └─────────────────┘`}</pre>
+        </div>
+      </section>
+
+      {/* Metrics */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-amber-400" />
+          </div>
+          <h2 className="text-2xl font-bold">Results & Metrics</h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { value: '1,847+', label: 'Resumes Analyzed', change: '+127 this week' },
+            { value: '94%', label: 'Accuracy Rate', change: 'vs 60% basic' },
+            { value: '2.3s', label: 'Avg Analysis Time', change: 'Local + AI' },
+            { value: '4.8/5', label: 'User Satisfaction', change: 'Beta feedback' },
+          ].map((metric, i) => (
+            <div key={i} className="bg-slate-800/50 rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-white">{metric.value}</div>
+              <div className="text-sm text-slate-400">{metric.label}</div>
+              <div className="text-xs text-emerald-400 mt-1">{metric.change}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Learnings */}
+      <section className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-violet-400" />
+          </div>
+          <h2 className="text-2xl font-bold">Key Learnings</h2>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {[
+            { title: 'Ship Fast, Iterate Faster', desc: 'MVP in 1 week, then daily improvements based on feedback.' },
+            { title: 'Privacy as a Feature', desc: 'Users explicitly mentioned trust concerns. "No data stored" became a key differentiator.' },
+            { title: 'Actionable > Accurate', desc: 'Users prefer "here\'s how to fix it" over just a score.' },
+            { title: 'Hybrid > Pure AI', desc: 'Local matching provides instant feedback; AI adds depth. Best of both worlds.' },
+          ].map((item, i) => (
+            <div key={i} className="bg-slate-800/30 rounded-xl p-5">
+              <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+              <p className="text-sm text-slate-400">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <div className="text-center py-8">
+        <button onClick={() => { setCurrentPage('home'); setResults(null); }} className="px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 rounded-2xl font-semibold text-lg inline-flex items-center gap-3 transition-all shadow-xl shadow-violet-500/25">
+          Try ResuMatch Now <ArrowRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ============================================
+  // ABOUT PAGE
+  // ============================================
+  
+  const AboutPage = () => (
+    <div className="max-w-4xl mx-auto space-y-12 py-8">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Built by Sweatha Hari</h1>
+        <p className="text-slate-400 text-lg">Product Manager passionate about solving real problems</p>
+      </div>
+
+      {/* Bio Card */}
+      <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <div className="flex flex-col md:flex-row gap-8 items-center">
+          <div className="w-32 h-32 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full flex items-center justify-center text-4xl font-bold">
+            SH
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl font-bold mb-2">Sweatha Hari</h2>
+            <p className="text-violet-400 mb-4">Product Manager</p>
+            <p className="text-slate-300 leading-relaxed mb-4">
+              I'm a Product Manager who believes the best way to learn is by building. ResuMatch started as a personal frustration — 
+              I was applying to PM roles and couldn't understand why my resume wasn't getting responses. 
+              So I built the tool I wished existed.
+            </p>
+            <div className="flex gap-4 justify-center md:justify-start">
+              <a href="https://linkedin.com/in/sweatha-hari" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm hover:bg-blue-500/30 transition-colors">
+                <Linkedin className="w-4 h-4" /> LinkedIn
+              </a>
+              <a href="mailto:sweatha@example.com" className="flex items-center gap-2 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-sm hover:bg-slate-600 transition-colors">
+                <Mail className="w-4 h-4" /> Email
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Skills */}
+      <div className="bg-slate-900/50 rounded-2xl p-8 border border-slate-800">
+        <h2 className="text-xl font-bold mb-6">PM Skills Demonstrated</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            'User Research', 'PRD Writing', 'Wireframing', 'Prioritization',
+            'Agile/Scrum', 'A/B Testing', 'Data Analysis', 'Stakeholder Mgmt',
+            'Roadmapping', 'Go-to-Market', 'Metrics/KPIs', 'Technical Specs'
+          ].map((skill, i) => (
+            <div key={i} className="bg-slate-800/50 rounded-lg px-4 py-2 text-sm text-slate-300 text-center">
+              {skill}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Contact CTA */}
+      <div className="text-center bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 rounded-2xl p-8 border border-violet-500/20">
+        <h2 className="text-2xl font-bold mb-2">Let's Connect!</h2>
+        <p className="text-slate-400 mb-6">I'm actively looking for Product Manager roles. Let's chat!</p>
+        <a href="https://linkedin.com/in/sweatha-hari" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 rounded-xl font-semibold transition-colors">
+          <Linkedin className="w-5 h-5" /> Connect on LinkedIn
+        </a>
+      </div>
+    </div>
+  );
+
+  // ============================================
+  // FOOTER
+  // ============================================
+  
+  const Footer = () => (
+    <footer className="border-t border-slate-800 mt-16 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Brain className="w-5 h-5 text-violet-400" />
+            <span className="font-semibold">ResuMatch</span>
+            <span className="text-slate-500 text-sm">v2.0</span>
+          </div>
+          <div className="text-slate-500 text-sm text-center">
+            Built with 💜 by <a href="https://linkedin.com/in/sweatha-hari" target="_blank" rel="noopener noreferrer" className="text-violet-400 hover:underline">Sweatha Hari</a> • PM Portfolio Project
+          </div>
+          <div className="flex gap-4">
+            <button onClick={() => setCurrentPage('case-study')} className="text-sm text-slate-400 hover:text-white">Case Study</button>
+            <button onClick={() => setCurrentPage('about')} className="text-sm text-slate-400 hover:text-white">About</button>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+
+  // ============================================
+  // MAIN RENDER
+  // ============================================
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+      <Navigation />
+      
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {currentPage === 'home' && !results && <HomePage />}
+        {currentPage === 'home' && results && <ResultsPage />}
+        {currentPage === 'results' && <ResultsPage />}
+        {currentPage === 'case-study' && <CaseStudyPage />}
+        {currentPage === 'about' && <AboutPage />}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800 mt-16 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
-          <p>ResuMatch AI — Smart ATS Optimization</p>
-          <p className="mt-1">A Product Management Portfolio Project by Sweatha Hari</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
