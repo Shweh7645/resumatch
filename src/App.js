@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, Lightbulb, Cpu, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, AlertCircle, Zap, Target, Sparkles, RefreshCw, Copy, Check, Brain, BarChart3, Lightbulb, Cpu, ThumbsUp, ThumbsDown, Edit3, Download, ChevronDown, ChevronUp, AlertTriangle, Award, Upload } from 'lucide-react';
 
 // ============================================
 // SYNONYM DICTIONARY - Maps variations to canonical form
@@ -496,6 +496,105 @@ export default function ATSResumeAnalyzer() {
   const [modifications, setModifications] = useState([]);
   const [expandedMod, setExpandedMod] = useState(null);
 
+  // File upload handler
+  const handleFileUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const text = event.target.result;
+      if (type === 'resume') {
+        setResumeText(text);
+      } else {
+        setJdText(text);
+      }
+    };
+
+    reader.onerror = () => {
+      setError('Failed to read file. Please try pasting the text instead.');
+    };
+
+    // For now, read as text (works for .txt files)
+    // For PDF/DOCX, we'd need additional libraries
+    if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      reader.readAsText(file);
+    } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      setError('PDF detected. Please copy-paste text from your PDF for best results.');
+    } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+      setError('Word doc detected. Please copy-paste text from your document for best results.');
+    } else {
+      reader.readAsText(file);
+    }
+  };
+
+  // Sample data for demo
+  const sampleResume = `SARAH JOHNSON
+Senior Product Manager
+sarah.johnson@email.com | (555) 123-4567 | linkedin.com/in/sarahjohnson
+
+PROFESSIONAL SUMMARY
+Results-driven Product Manager with 6+ years of experience leading cross-functional teams to deliver innovative software products. Proven track record of increasing user engagement by 45% and driving $2M+ in revenue growth through data-driven product strategies.
+
+EXPERIENCE
+
+Senior Product Manager | TechCorp Inc. | 2021 - Present
+• Led product roadmap for B2B SaaS platform serving 500+ enterprise clients
+• Managed backlog of 200+ features using Agile/Scrum methodology in JIRA
+• Collaborated with Engineering, Design, and Sales to launch 3 major product releases
+• Increased user retention by 35% through customer interview insights and A/B testing
+• Created PRDs and user stories for development team of 12 engineers
+
+Product Manager | StartupXYZ | 2018 - 2021
+• Owned end-to-end product lifecycle for mobile application with 100K+ users
+• Conducted 50+ customer interviews to identify pain points and opportunities
+• Reduced customer churn by 25% through improved onboarding experience
+• Worked with stakeholders to prioritize features based on business impact
+
+SKILLS
+Product Management: Roadmapping, PRD, User Stories, Agile, Scrum, Sprint Planning
+Tools: JIRA, Confluence, Figma, SQL, Tableau, Google Analytics, Amplitude
+Technical: API integrations, A/B testing, Data analysis, SQL queries
+
+EDUCATION
+MBA, Business Administration | Stanford University | 2018
+BS, Computer Science | UC Berkeley | 2014`;
+
+  const sampleJD = `Senior Product Manager - Enterprise Platform
+
+About the Role:
+We are looking for an experienced Senior Product Manager to lead our enterprise platform initiatives. You will work closely with Engineering, Design, and Sales teams to deliver products that delight our customers.
+
+Requirements:
+• 5+ years of product management experience in B2B SaaS
+• Strong experience with Agile/Scrum methodologies
+• Proven ability to write clear PRDs and user stories
+• Experience with SQL and data analysis tools
+• Track record of shipping products that drive business outcomes
+• Excellent stakeholder management and communication skills
+• Experience conducting customer interviews and user research
+• Familiarity with JIRA, Confluence, and product analytics tools
+
+Nice to Have:
+• MBA or technical degree
+• Experience with API products
+• Background in enterprise software
+• Experience with A/B testing and experimentation
+
+What You'll Do:
+• Own the product roadmap for our enterprise platform
+• Collaborate with cross-functional teams including Engineering, Design, and Sales
+• Conduct customer interviews to understand pain points
+• Define product requirements and prioritize the backlog
+• Drive product launches and go-to-market strategies
+• Analyze product metrics and user feedback to inform decisions`;
+
+  const loadSampleData = () => {
+    setResumeText(sampleResume);
+    setJdText(sampleJD);
+  };
+
   const handleAnalyze = useCallback(async () => {
     if (!resumeText.trim() || !jdText.trim()) return;
     
@@ -645,20 +744,36 @@ export default function ATSResumeAnalyzer() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Resume Input */}
               <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-violet-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-violet-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Your Resume</h3>
+                      <p className="text-xs text-slate-500">Upload or paste</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">Your Resume</h3>
-                    <p className="text-xs text-slate-500">Paste your resume content</p>
-                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx"
+                      onChange={(e) => handleFileUpload(e, 'resume')}
+                      className="hidden"
+                    />
+                    <span className="flex items-center gap-2 px-3 py-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 rounded-lg text-sm font-medium transition-colors">
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </span>
+                  </label>
                 </div>
                 <textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  placeholder="Paste your resume text here..."
-                  className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
+                  placeholder="Paste your resume here...
+
+Or click 'Upload' to select a file."
+                  className="w-full h-64 sm:h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none font-mono"
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-slate-500">
@@ -672,20 +787,36 @@ export default function ATSResumeAnalyzer() {
 
               {/* Job Description Input */}
               <div className="bg-slate-900/50 backdrop-blur rounded-2xl p-6 border border-slate-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
-                    <Target className="w-5 h-5 text-fuchsia-400" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-fuchsia-500/20 rounded-xl flex items-center justify-center">
+                      <Target className="w-5 h-5 text-fuchsia-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">Job Description</h3>
+                      <p className="text-xs text-slate-500">Upload or paste</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">Job Description</h3>
-                    <p className="text-xs text-slate-500">Paste the job posting</p>
-                  </div>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".txt,.pdf,.doc,.docx"
+                      onChange={(e) => handleFileUpload(e, 'jd')}
+                      className="hidden"
+                    />
+                    <span className="flex items-center gap-2 px-3 py-2 bg-fuchsia-500/20 hover:bg-fuchsia-500/30 text-fuchsia-400 rounded-lg text-sm font-medium transition-colors">
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </span>
+                  </label>
                 </div>
                 <textarea
                   value={jdText}
                   onChange={(e) => setJdText(e.target.value)}
-                  placeholder="Paste the job description here..."
-                  className="w-full h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
+                  placeholder="Paste the job description here...
+
+Copy directly from LinkedIn, Indeed, or company website."
+                  className="w-full h-64 sm:h-72 bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 resize-none font-mono"
                 />
                 <div className="flex justify-between items-center mt-2">
                   <p className="text-xs text-slate-500">
@@ -704,40 +835,62 @@ export default function ATSResumeAnalyzer() {
               </div>
             )}
 
-            <div className="flex justify-center">
-              <button
-                onClick={handleAnalyze}
-                disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
-                className="group px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    {analysisStage}
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Analyze Resume
-                  </>
+            {/* Action Buttons */}
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <button
+                  onClick={handleAnalyze}
+                  disabled={!resumeText.trim() || !jdText.trim() || isAnalyzing}
+                  className="group px-8 sm:px-10 py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 hover:from-violet-500 hover:via-purple-500 hover:to-fuchsia-500 disabled:from-slate-700 disabled:to-slate-700 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3 transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed shadow-xl shadow-violet-500/25"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      <span className="hidden sm:inline">{analysisStage}</span>
+                      <span className="sm:hidden">Analyzing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5" />
+                      Analyze Resume
+                    </>
+                  )}
+                </button>
+
+                {/* Try Demo Link */}
+                {!resumeText && !jdText && (
+                  <button
+                    onClick={loadSampleData}
+                    className="text-sm text-slate-500 hover:text-violet-400 underline underline-offset-2 transition-colors"
+                  >
+                    or try with sample data
+                  </button>
                 )}
-              </button>
+              </div>
+
+              {/* Privacy Guarantee */}
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <svg className="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                <span>100% Privacy Friendly. Your data is processed locally and never stored.</span>
+              </div>
             </div>
 
             {/* Feature highlights */}
-            <div className="grid md:grid-cols-4 gap-4 mt-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-12">
               {[
-                { icon: Cpu, title: 'Smart Synonyms', desc: '"JS" matches "JavaScript"', color: 'blue' },
-                { icon: BarChart3, title: 'Noise Filtering', desc: 'Removes LinkedIn junk', color: 'violet' },
-                { icon: Edit3, title: 'AI Suggestions', desc: 'Accept or reject changes', color: 'fuchsia' },
+                { icon: Upload, title: 'Easy Upload', desc: 'Upload or paste resume', color: 'violet' },
+                { icon: Cpu, title: 'Smart Matching', desc: 'Synonym detection', color: 'blue' },
+                { icon: Brain, title: 'Semantic AI', desc: 'Vector embeddings', color: 'fuchsia' },
                 { icon: Target, title: 'ATS Optimized', desc: 'Beat the robots', color: 'emerald' },
               ].map((feature, i) => (
-                <div key={i} className="bg-slate-900/30 rounded-xl p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
-                  <div className={`w-12 h-12 bg-${feature.color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-3`}>
-                    <feature.icon className={`w-6 h-6 text-${feature.color}-400`} />
+                <div key={i} className="bg-slate-900/30 rounded-xl p-4 sm:p-5 border border-slate-800 text-center hover:border-slate-700 transition-colors">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-${feature.color}-500/20 rounded-xl flex items-center justify-center mx-auto mb-3`}>
+                    <feature.icon className={`w-5 h-5 sm:w-6 sm:h-6 text-${feature.color}-400`} />
                   </div>
-                  <h4 className="font-semibold mb-1">{feature.title}</h4>
-                  <p className="text-sm text-slate-500">{feature.desc}</p>
+                  <h4 className="font-semibold mb-1 text-sm sm:text-base">{feature.title}</h4>
+                  <p className="text-xs sm:text-sm text-slate-500">{feature.desc}</p>
                 </div>
               ))}
             </div>
@@ -1252,6 +1405,23 @@ export default function ATSResumeAnalyzer() {
                         <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs font-bold">
                           {results.missingKeywords?.length || 0}
                         </span>
+                        {results.missingKeywords?.length > 0 && (
+                          <button
+                            onClick={() => {
+                              const keywords = results.missingKeywords.join(', ');
+                              navigator.clipboard.writeText(keywords);
+                              setCopiedIndex('missing-keywords');
+                              setTimeout(() => setCopiedIndex(null), 2000);
+                            }}
+                            className="ml-auto flex items-center gap-1 px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-xs text-slate-300 transition-colors"
+                          >
+                            {copiedIndex === 'missing-keywords' ? (
+                              <><Check className="w-3 h-3" /> Copied!</>
+                            ) : (
+                              <><Copy className="w-3 h-3" /> Copy All</>
+                            )}
+                          </button>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto">
                         {results.missingKeywords?.map((kw, i) => (
